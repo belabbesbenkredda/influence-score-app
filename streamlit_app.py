@@ -1,32 +1,39 @@
 import streamlit as st
 import pandas as pd
+import numpy as np
+import re
 
-st.set_page_config(page_title="Public Sphere Influence Calculator", layout="centered")
+st.set_page_config(page_title="Influence Score: US Pilot", layout="wide")
 
-st.title("🧠 Public Sphere Influence Score Calculator")
-st.write("Enter the Reach, Salience, and Discursiveness scores below (each between 0 and 1). The Influence Score will be calculated automatically.")
+st.title("🇺🇸 US Public Sphere Pilot: Influence Scoring Dashboard")
+st.write("This tool allows you to input, score, and compare media samples for the US pilot phase of the Public Sphere Health project.")
 
-# Input fields
-reach = st.slider("Reach Score", 0.0, 1.0, 0.5, 0.01)
-salience = st.slider("Salience Score", 0.0, 1.0, 0.5, 0.01)
-discursiveness = st.slider("Discursiveness Score", 0.0, 1.0, 0.5, 0.01)
+st.header("🔍 Score a Single Media Sample")
+sample_title = st.text_input("Sample Title", "September 11 Harris–Trump Debate")
+reach = st.slider("Reach Score (0–1)", 0.0, 1.0, 0.5, 0.01)
+salience = st.slider("Machine Salience Score (0–1)", 0.0, 1.0, 0.5, 0.01)
+discursiveness = st.slider("Machine Discursiveness Score (0–1)", 0.0, 1.0, 0.5, 0.01)
 
-# Calculation
 influence_score = 0.4 * reach + 0.4 * salience + 0.2 * discursiveness
+st.metric("📊 Machine Influence Score", f"{influence_score:.3f}")
 
-# Display result
-st.metric("📊 Influence Score", f"{influence_score:.3f}")
+st.markdown("---")
+st.subheader("✍️ Human Evaluation (Optional)")
+human_salience = st.slider("Human Salience Score (0–1)", 0.0, 1.0, 0.5, 0.01)
+human_discursiveness = st.slider("Human Discursiveness Score (0–1)", 0.0, 1.0, 0.5, 0.01)
+human_comments = st.text_area("Qualitative Comments")
 
-# Optional data entry
-st.subheader("📝 Enter Multiple Samples")
-data_input = st.text_area("Paste data (one line per sample, comma-separated Reach, Salience, Discursiveness)",
-                          "0.8, 0.6, 0.7\n0.5, 0.5, 0.5")
+if st.button("Save Sample Entry"):
+    st.success("Sample saved (simulation only). In future: entries will persist to a database or spreadsheet.")
 
-if data_input:
-    try:
-        rows = [list(map(float, line.split(","))) for line in data_input.strip().split("\n")]
-        df = pd.DataFrame(rows, columns=["Reach", "Salience", "Discursiveness"])
+st.markdown("---")
+st.subheader("📥 Upload Batch of Samples")
+uploaded_file = st.file_uploader("Upload CSV with columns: Title, Reach, Salience, Discursiveness", type=["csv"])
+
+if uploaded_file:
+    df = pd.read_csv(uploaded_file)
+    if all(col in df.columns for col in ["Title", "Reach", "Salience", "Discursiveness"]):
         df["Influence"] = 0.4 * df["Reach"] + 0.4 * df["Salience"] + 0.2 * df["Discursiveness"]
-        st.dataframe(df.style.format("{:.3f}"))
-    except:
-        st.error("Please ensure all lines contain exactly 3 comma-separated numeric values between 0 and 1.")
+        st.dataframe(df.style.format({"Reach": "{:.2f}", "Salience": "{:.2f}", "Discursiveness": "{:.2f}", "Influence": "{:.3f}"}))
+    else:
+        st.error("Missing required columns. Please include: Title, Reach, Salience, Discursiveness")
