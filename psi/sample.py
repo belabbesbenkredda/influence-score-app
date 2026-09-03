@@ -43,7 +43,17 @@ NOW = datetime.now(timezone.utc)
 CUTOFF = NOW - timedelta(days=WINDOW_DAYS)
 
 _STATE = {"yt_blocked": False, "gdelt_disabled": False}
-_SKIP_PATH = re.compile(r"/(tag|tags|category|categories|author|authors|about|privacy|terms|contact|subscribe|newsletter|search|video|videos|photos|gallery|live|shows?|podcasts?|topics?|sitemap|login|account)(/|$)", re.I)
+_SKIP_PATH = re.compile(r"/(tag|tags|category|categories|author|authors|people|person|about|privacy|terms|contact|subscribe|newsletter|newsletters|search|photos|gallery|live|topics?|sitemap|login|account|page/\d+|feed|rss|wp-json|wp-content|store|careers|jobs|events|donate|shop)(/|$)", re.I)
+_ASSET = re.compile(r"\.(css|js|png|jpe?g|gif|svg|ico|webp|webmanifest|json|xml|pdf|mp3|mp4|m4a)$", re.I)
+# Sections that are not public-affairs content. Applied to every candidate URL.
+_NONPOL = re.compile(r"(^|\.)(cooking|athletic|sports?|games|crosswords|wirecutter|recipes?|travel|realestate|style|fashion|food|dining|arts?|movies?|music|television|theater|books?|entertainment|lifestyle|weather|obituaries|horoscopes?|puzzles?|shopping|deals|coupons)\.|/(cooking|athletic|sports?|games|crosswords|wirecutter|recipes?|travel|real-?estate|style|fashion|food|dining|arts?|movies?|music|television|theater|books?|entertainment|lifestyle|weather|obituaries|horoscopes?|puzzles?|shopping|deals|coupons|celebrity|celebrities|gossip|royals?|autos?|cars)(/|$)", re.I)
+_SUBINDEX = re.compile(r"/(date|shows?|episodes?|archive|transcripts?)/[^/]+/?$|/shows?/20\d\d/\d{1,2}/\d{1,2}/?$", re.I)
+_ARTICLEY = re.compile(r"transcript|episode|full-show|segment|/show/|/watch/|/audio/|/story/|/news/|/politics/|/opinion/|/podcast/|/video/|/20\d\d/|/\d{4}/\d{1,2}/", re.I)
+
+
+def nonpolitical(url: str) -> bool:
+    p = urlparse(url)
+    return bool(_NONPOL.search(p.netloc) or _NONPOL.search(p.path))
 
 
 def item_id(url: str) -> str:
@@ -60,6 +70,21 @@ def clean_text(t: str) -> str:
 
 def words(t: str | None) -> int:
     return len(t.split()) if t else 0
+
+
+def looks_like_listing(text: str) -> bool:
+    """Index/series pages extract as many short lines (titles, dates, teasers)."""
+    lines = [l for l in text.split("\n") if l.strip()]
+    if len(lines) < 12:
+        return False
+    short = sum(1 for l in lines if len(l.split()) < 12)
+    return short / len(lines) > 0.6
+
+
+def title_from_url(url: str) -> str:
+    p = urlparse(url)
+    parts = [x for x in p.path.split("/") if x and x.lower() not in {"show", "shows", "date", "segment", "transcript", "transcripts", "video", "watch"}]
+    return " / ".join(parts[-3:]) if parts else url
 
 
 def strip_html(s: str) -> str:
@@ -103,12 +128,16 @@ def fetch_html(url: str, timeout: int = 20) -> tuple[str | None, str]:
 
 
 def extract_article(html: str, url: str) -> dict:
-    meta = trafilatura.bare_extraction(html, url=url, include_comments=False, favor_precision=False, with_metadata=True)
-    if not meta:
-        return {}
-    if hasattr(meta, "as_dict"):
+    meta = trafilatura.bare_extraction(html, url=url, include_comments=False, with_metadata=True)
+    if meta and hasattr(meta, "as_dict"):
         meta = meta.as_dict()
+    meta = meta or {}
     text = meta.get("text") or ""
+    if words(text) < MIN_WORDS:
+        # transcripts often sit in containers the precision-first pass drops (e.g. democracynow.org)
+        recall = trafilatura.extract(html, url=url, include_comments=False, favor_recall=True) or ""
+        if words(recall) > words(text):
+            text = recall
     date = meta.get("date")
     if date and len(date) == 10:
         date = f"{date}T00:00:00+00:00"
@@ -141,6 +170,39 @@ def rss_candidates(outlet: dict) -> list[dict]:
     return out
 
 
+def harvest_links(index_url: str, html: str) -> tuple[list[str], list[str]]:
+    """Return (article-like links, sub-index links) found on an index page, best first."""
+    base_host = urlparse(index_url).netloc.split(":")[0].removeprefix("www.")
+    scored, subindex, seen = [], [], set()
+    for m in re.finditer(r'href=["\']([^"\'#?]+)', html):
+        href = urljoin(index_url, m.group(1)).rstrip("/")
+        if href in seen or href == index_url.rstrip("/"):
+            continue
+        seen.add(href)
+        p = urlparse(href)
+        host = p.netloc.split(":")[0].removeprefix("www.")
+        if not host.endswith(base_host) or _ASSET.search(p.path):
+            continue
+        if _SUBINDEX.search(p.path):
+            subindex.append(href)
+            continue
+        if _SKIP_PATH.search(p.path) or nonpolitical(href) or len(p.path) < 12 or re.search(r"/(podcast-series|series|program|programs|collections?)/", p.path):
+            continue
+        slug = p.path.rstrip("/").rsplit("/", 1)[-1]
+        score = 0
+        if _ARTICLEY.search(p.path):
+            score += 2
+        if len(slug) >= 20 or "-" in slug or "_" in slug:
+            score += 1
+        if p.path.count("/") >= 2:
+            score += 1
+        if score >= 2:
+            scored.append((score, href))
+    scored.sort(key=lambda x: -x[0])
+    subindex.sort(key=lambda h: re.sub(r"\D", "", h)[-8:], reverse=True)   # newest date-like path first
+    return [h for _, h in scored], subindex
+
+
 def transcript_candidates(outlet: dict) -> list[dict]:
     idx = outlet.get("transcript_url")
     if not idx:
@@ -148,24 +210,16 @@ def transcript_candidates(outlet: dict) -> list[dict]:
     html, status = fetch_html(idx)
     if not html:
         return [{"error": f"transcript_index_{status}"}]
-    base_host = urlparse(idx).netloc.split(":")[0].removeprefix("www.")
-    links = []
-    seen = set()
-    for m in re.finditer(r'href=["\']([^"\'#?]+)', html):
-        href = urljoin(idx, m.group(1))
-        p = urlparse(href)
-        host = p.netloc.split(":")[0].removeprefix("www.")
-        if not host.endswith(base_host):
-            continue
-        if href.rstrip("/") == idx.rstrip("/") or href in seen:
-            continue
-        if _SKIP_PATH.search(p.path) or len(p.path) < 12:
-            continue
-        seen.add(href)
-        links.append(href)
-    transcripty = [l for l in links if re.search(r"transcript|episode|full-show|segment|show/|/watch|/audio|/story|/news|/politics|/20\d\d/", l, re.I)]
-    chosen = transcripty if len(transcripty) >= 5 else links
-    return [{"url": l, "title": None, "published": None, "fulltext": None, "source": "transcript_page"} for l in chosen[:MAX_CANDIDATES]]
+    links, subindex = harvest_links(idx, html)
+    if len(links) < 5 and subindex:
+        # e.g. transcripts.cnn.com/date/YYYY-MM-DD or democracynow.org/shows/YYYY/M/D
+        for sub in subindex[:3]:
+            sub_html, _ = fetch_html(sub)
+            if sub_html:
+                more, _ = harvest_links(sub, sub_html)
+                links.extend(l for l in more if l not in links)
+            time.sleep(0.3)
+    return [{"url": l, "title": None, "published": None, "fulltext": None, "source": "transcript_page"} for l in links[:MAX_CANDIDATES]]
 
 
 def youtube_candidates(outlet: dict) -> list[dict]:
@@ -251,6 +305,11 @@ def sample_outlet(outlet: dict, have: int) -> dict:
         if words(text) < MIN_WORDS:
             log_miss(cand["url"], f"short_{words(text)}w")
             return False
+        if method == "transcript_page" and looks_like_listing(text):
+            log_miss(cand["url"], "listing_page")
+            return False
+        if not title or len(title.split()) < 3 or title.strip().lower() in {"transcripts", "transcript", "(untitled)"}:
+            title = title_from_url(cand["url"]) if not title or len(title.split()) < 3 else title
         items.append({"item_id": item_id(cand["url"]), "outlet_id": oid, "country": db.COUNTRY,
                       "title": title or cand.get("title") or "(untitled)", "url": cand["url"], "published_at": published,
                       "text": text, "word_count": words(text), "fetch_method": method, "fetched_at": NOW.isoformat()})
@@ -269,6 +328,9 @@ def sample_outlet(outlet: dict, have: int) -> dict:
             if not url or url in seen_urls:
                 continue
             seen_urls.add(url)
+            if nonpolitical(url):
+                log_miss(url, "nonpolitical_section")
+                continue
             inwin = within_window(c.get("published"))
             if inwin is False:
                 log_miss(url, "stale")
@@ -296,14 +358,17 @@ def sample_outlet(outlet: dict, have: int) -> dict:
                 log_miss(url, "stale")
                 continue
             method = "transcript_page" if c["source"] == "transcript_page" else "page_fetch"
-            if accept(c, art.get("text") or "", method, title=c.get("title") or art.get("title"), published=published):
+            title = c.get("title") if c["source"] == "rss" else (art.get("title") or c.get("title"))
+            if accept(c, art.get("text") or "", method, title=title, published=published):
                 need -= 1
             time.sleep(0.4)
 
-    consume(rss_candidates(outlet), "rss")
-    if need > 0 and outlet["type"] in {"tv", "cable", "radio", "podcast"}:
+    broadcast = outlet["type"] in {"tv", "cable", "radio", "podcast"}
+    if broadcast:
         consume(transcript_candidates(outlet), "transcript")
     if need > 0:
+        consume(rss_candidates(outlet), "rss")
+    if need > 0 and broadcast:
         consume(youtube_candidates(outlet), "youtube")
     if need > 0 and (have + len(items)) < MIN_PER_OUTLET:
         consume(gdelt_candidates(outlet), "gdelt")

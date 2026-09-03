@@ -57,9 +57,9 @@ def build_schema(topics: list[str]) -> dict:
         "type": "object",
         "properties": {
             "topic": {"type": "string", "enum": topics},
-            "logos": {"type": "integer", "minimum": 0, "maximum": 10},
-            "ethos": {"type": "integer", "minimum": 0, "maximum": 10},
-            "pathos": {"type": "integer", "minimum": 0, "maximum": 10},
+            "logos": {"type": "integer", "enum": list(range(11))},
+            "ethos": {"type": "integer", "enum": list(range(11))},
+            "pathos": {"type": "integer", "enum": list(range(11))},
             "justification": {"type": "string"},
         },
         "required": ["topic", "logos", "ethos", "pathos", "justification"],

@@ -41,3 +41,37 @@ Read newest at the bottom. Short lines for phone reading.
 
 **Next**: scaffold committed; run the outlet + reach research
 workflow (Stages 1-2).
+
+## 2026-09-03 — Stages built, research workflow running
+
+**Done**
+- All seven stage modules written and committed.
+- Salience (Stage 3) runs: Gallup MIP, July 2026 column,
+  49 raw categories -> 18 topics. Top: government/leadership 28%,
+  economy 18%, inflation/cost of living 13%, immigration 12%.
+- Smoke test of sampling + scoring on 7 outlets in a scratch DB:
+  scoring works, ~$0.011 per item with prompt caching.
+  Structured JSON output rejects min/max on integers; switched
+  to an enum of 0-10.
+
+**Research workflow (Stages 1-2)**
+- 7 outlet-type agents -> completeness critic -> reach agents ->
+  fact-check agents (re-fetch every source URL) -> Pew weights.
+- The runner has 4 CPUs, so the workflow runs only 2 agents at a
+  time. Expect it to take a while. Nothing else blocks on it
+  except loading the seed CSVs.
+
+**Sampling findings (what the cloud runner can and cannot get)**
+- Works: PBS NewsHour full transcripts, CNN transcripts (via
+  date pages), Democracy Now transcripts (needs recall-mode
+  extraction), Fox/Politico/Axios articles via RSS full text.
+- Blocked: NYT article pages (403), WSJ (401), Reuters (401),
+  Bloomberg (403), WaPo (timeout), YouTube captions (bot wall).
+- Podcast episode pages (Crooked, audioboom) are show notes,
+  not transcripts: ~150-250 words, under the 300-word floor.
+  Podcasts will be thin until YouTube captions are reachable.
+- Decision: broadcast-type outlets try transcript pages first,
+  then RSS, then YouTube, then GDELT. Non-political sections
+  (sports, cooking, arts...) are filtered out of every path.
+
+**Spend so far**: ~$0.07 (6 smoke-test items).

@@ -102,22 +102,25 @@ _MONTHS = {m: i for i, m in enumerate(["Jan", "Feb", "Mar", "Apr", "May", "Jun",
 
 
 def fetch_page() -> tuple[str, str]:
-    """Return (html, provenance). Live fetch first, cached copy second."""
+    """Return (html, provenance). Live fetch first (cached only if it parses), then cached copies newest first."""
     RAW_DIR.mkdir(parents=True, exist_ok=True)
     try:
         r = requests.get(GALLUP_URL, headers=UA, timeout=30)
         r.raise_for_status()
-        if "Most Important Problem Table" in r.text:
-            stamp = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-            path = RAW_DIR / f"gallup_mip_1675_{stamp}.html"
-            path.write_text(r.text, encoding="utf-8")
-            return r.text, f"live fetch {stamp}, cached to {path.name}"
-    except requests.RequestException as exc:
-        print(f"  live Gallup fetch failed: {exc}")
-    cached = sorted(RAW_DIR.glob("gallup_mip_1675_*.html"))
-    if not cached:
-        raise SystemExit("No Gallup page available (live fetch failed and no cache). Cannot build salience.")
-    return cached[-1].read_text(encoding="utf-8"), f"cached copy {cached[-1].name}"
+        latest, rows = parse_mip_table(r.text)
+        stamp = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        path = RAW_DIR / f"gallup_mip_1675_{stamp}.html"
+        path.write_text(r.text, encoding="utf-8")
+        return r.text, f"live fetch {stamp} (latest column {latest}), cached to {path.name}"
+    except (requests.RequestException, ValueError) as exc:
+        print(f"  live Gallup fetch unusable ({exc}); trying cached copies")
+    for cached in sorted(RAW_DIR.glob("gallup_mip_1675_*.html"), reverse=True):
+        try:
+            parse_mip_table(cached.read_text(encoding="utf-8"))
+            return cached.read_text(encoding="utf-8"), f"cached copy {cached.name}"
+        except ValueError:
+            continue
+    raise SystemExit("No parseable Gallup page available (live fetch failed and no usable cache). Cannot build salience.")
 
 
 def parse_mip_table(page: str) -> tuple[str, list[tuple[str, str]]]:
@@ -125,7 +128,7 @@ def parse_mip_table(page: str) -> tuple[str, list[tuple[str, str]]]:
     tables = re.findall(r"<table.*?</table>", page, re.S)
     table = next((t for t in tables if "Most Important Problem Table" in t), None)
     if table is None:
-        raise SystemExit("Gallup MIP table not found on page; layout changed?")
+        raise ValueError("Gallup MIP table not found on page; layout changed?")
     rows = re.findall(r"<tr.*?</tr>", table, re.S)
     header_cells = None
     data: list[tuple[str, str]] = []
@@ -134,8 +137,8 @@ def parse_mip_table(page: str) -> tuple[str, list[tuple[str, str]]]:
         cells = [c for c in cells if c != ""]
         if not cells:
             continue
-        if header_cells is None and any(re.match(r"^[A-Z][a-z]{2} \d{4}$", c) for c in cells):
-            header_cells = [c for c in cells if re.match(r"^[A-Z][a-z]{2} \d{4}$", c)]
+        if header_cells is None and any(_month_label(c) for c in cells):
+            header_cells = [c for c in cells if _month_label(c)]
             continue
         if header_cells is None:
             continue
@@ -145,12 +148,25 @@ def parse_mip_table(page: str) -> tuple[str, list[tuple[str, str]]]:
             continue
         data.append((label, values[0]))
     if header_cells is None or not data:
-        raise SystemExit("Could not parse Gallup MIP table header/rows.")
+        raise ValueError("Could not parse Gallup MIP table header/rows.")
     return header_cells[0], data
 
 
+def _month_label(cell: str) -> tuple[str, int] | None:
+    """Gallup prints month headers as 'Jul 2026', and sometimes as 'Jul-26' or '26-Aug'."""
+    cell = cell.strip()
+    m = re.match(r"^([A-Z][a-z]{2}) (\d{4})$", cell) or re.match(r"^([A-Z][a-z]{2})-(\d{2})$", cell)
+    if m and m.group(1) in _MONTHS:
+        year = int(m.group(2))
+        return m.group(1), (year if year > 100 else 2000 + year)
+    m = re.match(r"^(\d{2})-([A-Z][a-z]{2})$", cell)
+    if m and m.group(2) in _MONTHS:
+        return m.group(2), 2000 + int(m.group(1))
+    return None
+
+
 def month_label_to_date(label: str) -> str:
-    mon, year = label.split()
+    mon, year = _month_label(label)
     return f"{year}-{_MONTHS[mon]:02d}"
 
 
