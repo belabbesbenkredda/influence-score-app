@@ -151,7 +151,26 @@ def connect(path: Path | str = DB_PATH) -> sqlite3.Connection:
     con.execute("PRAGMA journal_mode=WAL")
     con.execute("PRAGMA foreign_keys=ON")
     con.executescript(SCHEMA)
+    _migrate(con)
     return con
+
+
+def _migrate(con: sqlite3.Connection) -> None:
+    """Add columns that were introduced after a database was first created (SQLite has no ADD IF NOT EXISTS)."""
+    import re
+
+    for block in re.findall(r"CREATE TABLE IF NOT EXISTS (\w+) \((.*?)\);", SCHEMA, re.S):
+        table, body = block
+        existing = {r[1] for r in con.execute(f"PRAGMA table_info({table})").fetchall()}
+        for line in body.splitlines():
+            line = line.split("--")[0].strip().rstrip(",")
+            if not line:
+                continue
+            col = line.split()[0]
+            if col.upper() in {"PRIMARY", "FOREIGN", "UNIQUE", "CHECK"} or col in existing:
+                continue
+            decl = re.sub(r"\bPRIMARY KEY\b|\bREFERENCES \w+\(\w+\)", "", line).strip()
+            con.execute(f"ALTER TABLE {table} ADD COLUMN {decl}")
 
 
 @contextmanager
