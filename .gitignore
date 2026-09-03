@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+.env
+out/psi.sqlite-journal
+out/psi.sqlite-wal
+out/psi.sqlite-shm
+.cache/
