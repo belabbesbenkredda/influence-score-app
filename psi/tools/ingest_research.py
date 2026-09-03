@@ -30,7 +30,33 @@ ARCHIVE = db.DATA / "raw" / "research_outputs.json"
 
 # Outlets returned by the research agents but excluded from the universe, with the reason.
 EXCLUDE = {
-    "cbs_60_minutes": "show, not a network news division; CBS News already covers it (agent flagged it)",
+    # brand duplicates (same product already in the list under another type)
+    "cbs_60_minutes": "show inside CBS News; network-level outlets only",
+    "the_bulwark_newsletter": "same Substack product as `bulwark` (print_digital)",
+    "meidas_plus": "same newsroom as `meidastouch` (podcast)",
+    "honestly_bari_weiss": "on hiatus since early 2026 (agent: status uncertain); The Free Press is in the list",
+    # not US outlets (large US audiences, but the brief is the American public sphere); Guardian US and BBC kept with a note
+    "economist": "UK weekly; US web reach small and paywalled",
+    "ft": "UK daily; US web reach small and paywalled",
+    "rest_is_politics_us": "UK production (Goalhanger)",
+    # aggregators with no original opinion output
+    "msn": "aggregator",
+    "yahoo_news": "aggregator",
+    "1440_daily_digest": "aggregator newsletter, explicitly non-opinion",
+    # entertainment/interview shows with episodic politics, not political coverage outlets
+    "shawn_ryan_show": "interview show, politics episodic",
+    "theo_von": "comedy interview show",
+    "pbd_podcast": "business/interview show",
+    "pivot": "tech/business",
+    # not opinion-forming as a channel
+    "cspan": "raw feed, not Nielsen-rated (critic)",
+    # small audiences relative to the list (critic), trimmed to keep the universe near ~110
+    "joe_pags_show": "small audience",
+    "michael_berry_show": "regional, no text available",
+    "current_affairs": "small audience",
+    "raw_story": "small audience",
+    "compact": "small audience",
+    "the_19th": "small audience",
 }
 OUTLET_COLS = ["outlet_id", "name", "type", "url", "rss_url", "youtube_channel", "youtube_channel_id", "transcript_url", "status", "notes"]
 REACH_COLS = ["outlet_id", "reach_raw", "reach_unit", "reach_source", "reach_source_url", "reach_source_quote", "reach_date",

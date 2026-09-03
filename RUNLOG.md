@@ -94,3 +94,69 @@ workflow (Stages 1-2).
   pages are JavaScript-only, so it stays thin).
 - 60 Minutes dropped from the universe: it is a show, CBS News
   already covers it.
+
+## 2026-09-03 — Stages 1-4 done, scoring started
+
+**Checkpoint A**
+- Outlets in DB: **124** (target ~110).
+- Outlets with a sourced reach figure: **108** (target 60).
+- Items fetched with usable text: **576** across 84 outlets
+  (target 300). Misses logged: 2,886 rows in `fetch_log`.
+
+**Outlet universe (Stage 1)**
+- Built by seven parallel research agents (one per outlet type),
+  then a completeness critic, then a gap filler. Every RSS feed
+  and transcript index was verified by fetching it.
+- The critic found 139 rows and said the list needed trimming,
+  not additions. Dropped 20: brand duplicates (60 Minutes,
+  Bulwark newsletter, Meidas+, Honestly), non-US (Economist, FT,
+  Rest Is Politics US), aggregators (MSN, Yahoo News, 1440),
+  entertainment (Shawn Ryan, Theo Von, PBD, Pivot), C-SPAN
+  (raw feed, not Nielsen-rated), and six small outlets.
+  Reasons are in `psi/tools/ingest_research.py`.
+- Result: 124 outlets — 7 tv, 8 cable, 52 print/digital,
+  12 radio, 30 podcast, 15 newsletter.
+
+**Reach (Stage 2) — where each figure comes from**
+- print_digital 43/52: Semrush monthly visits per domain,
+  July 2026 (June for smaller sites; the month is recorded per
+  row). 8 outlets have no Semrush page at all (Semafor, Puck,
+  National Review, New Republic, Intercept, Dispatch, Bulwark,
+  American Conservative) and stay unsourced.
+- cable 7/8: Nielsen via MediaPost (July 2026 total day) and the
+  Fox Business Q2 press release. OAN is not Nielsen-rated.
+- tv 6/7: Nielsen via Deadline (Q2 2026 evening newscasts) and
+  The Desk (Univision/Telemundo, week to 12 July). PBS NewsHour's
+  only public Nielsen average is 2022 (Pew) — kept, flagged
+  `stale`.
+- podcast 29/30: YouTube subscriber counts read off the channel
+  pages. Bannon's War Room has no channel (banned 2021).
+- newsletter 14/15: subscriber counts printed on the publication's
+  own page, flagged `self_reported`. Punchbowl blocks fetching.
+- radio 9/12: no public per-host Nielsen table exists (Nielsen
+  does not compile nationwide by host; Talkers' own audience page
+  is now 404). Used Talkers estimates reproduced in Wikipedia's
+  most-listened-to table, flagged `secondary` and undated.
+  Democracy Now!, 1A and Erick Erickson are not in it.
+- Cross-type weights: Pew News Platform Fact Sheet, Aug 2025.
+  TV 64, digital 65, radio 44, podcast 32, newsletter 30 percent
+  of US adults. Cable borrows television (flagged `proxy`).
+
+**Verification**: every figure is re-fetched by
+`psi/tools/verify_reach.py`, which looks for the recorded quote
+(or its number plus a distinctive word) in the live page.
+`refuted` rows get their figure nulled by `run.py reach`.
+No model is involved; it is a plain text search.
+
+**Sampling (Stage 4) — what the runner could not get**
+- Blocked entirely: YouTube captions (bot wall), so TV, cable,
+  radio and podcast items come from transcript pages and
+  articles. WaPo timed out on every attempt; NYT article pages
+  403 on every attempt.
+- 639 of the misses are HTTP 403, 902 are items older than the
+  14-day window.
+- Working paths: RSS full text 301 items, page fetch 155,
+  transcript pages 81, homepage harvest 35, YouTube 4.
+
+**Spend so far**: ~$0.22 (smoke tests). Scoring 576 items now,
+estimated $8-12.

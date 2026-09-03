@@ -42,6 +42,16 @@ def load_seed() -> list[dict]:
 def run() -> None:
     seed = load_seed()
     with db.db() as con:
+        # the seed is the source of truth: outlets removed from it are removed from the DB (with their items/scores)
+        keep = {r["outlet_id"] for r in seed}
+        stale = [r["outlet_id"] for r in db.rows(con, "SELECT outlet_id FROM outlets WHERE country=?", (db.COUNTRY,)) if r["outlet_id"] not in keep]
+        for oid in stale:
+            con.execute("DELETE FROM scores WHERE item_id IN (SELECT item_id FROM items WHERE outlet_id=?)", (oid,))
+            for t in ("items", "fetch_log", "reach", "outlet_scores"):
+                con.execute(f"DELETE FROM {t} WHERE outlet_id=?", (oid,))
+            con.execute("DELETE FROM outlets WHERE outlet_id=?", (oid,))
+        if stale:
+            print(f"  removed {len(stale)} outlets no longer in the seed: {', '.join(stale)}")
         for row in seed:
             rec = {c: (row.get(c) or None) for c in FIELDS}
             rec["status"] = rec["status"] or "active"
