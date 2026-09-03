@@ -220,10 +220,11 @@ def run() -> None:
     trs = []
     for r in ranked:
         flag = r["reach_flag"] or "unsourced"
+        other_flags = ";".join(f for f in (r["flags"] or "").split(";") if f and not f.startswith("reach:"))
         trs.append(
             f'<tr data-id="{esc(r["outlet_id"])}" data-name="{esc(r["name"])}" data-type="{esc(r["type"])}">'
             f'<td class="num" data-v="{r["rank"] if r["rank"] is not None else ""}">{r["rank"] if r["rank"] is not None else "—"}</td>'
-            f'<td>{esc(r["name"])}<br><span class="flag">{esc(flag)}{" · " + esc(r["flags"]) if r["flags"] else ""}</span></td>'
+            f'<td>{esc(r["name"])}<br><span class="flag">{esc(flag)}{" · " + esc(other_flags) if other_flags else ""}</span></td>'
             f'<td>{esc(r["type"])}</td>'
             f'<td class="num" data-v="{r["r"] if r["r"] is not None else ""}">{f3(r["r"])}</td>'
             f'<td class="num" data-v="{r["s"] if r["s"] is not None else ""}">{f3(r["s"])}</td>'
@@ -256,7 +257,7 @@ def run() -> None:
             f'<div class="item flag">{reach_line} · <a href="{esc(r["url"])}">{esc(r["url"])}</a></div>'
             + "".join(item_html) + "</details>")
 
-    weights_txt = ", ".join(f'{w["type"]} {w["weight"]:.2f}' + (f' ({w["flag"]})' if w["flag"] not in (None, "ok") else "") for w in weights if w["weight"] is not None)
+    weights_txt = ", ".join(f'{w["type"]} {w["weight"]:.2f}' + (f' ({w["flag"]})' if w["flag"] not in (None, "ok") else "") for w in weights if w["weight"] is not None) or "not available"
     type_opts = "".join(f'<option value="{esc(t)}">{esc(t)}</option>' for t in types)
     score_meta = meta.get("score_run") or {}
 

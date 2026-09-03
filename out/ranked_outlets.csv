@@ -1,0 +1,8 @@
+rank,outlet_id,name,type,R,S,D,I,confidence,n_items,n_scored,mean_logos,mean_ethos,mean_pathos,reach_raw,reach_unit,reach_source,reach_source_url,reach_date,reach_flag,flags,url
+,democracy_now,Democracy Now!,radio,,0.050000,0.566667,,medium,4,4,5.250000,5.750000,6.000000,,,,,,unsourced,reach:unsourced,https://www.democracynow.org
+,cnn,CNN,cable,,0.157500,0.491667,,medium,4,4,4.000000,5.250000,5.500000,,,,,,unsourced,reach:unsourced,https://www.cnn.com
+,fox_news,Fox News Channel,cable,,0.040000,0.416667,,low,4,2,3.000000,4.500000,5.000000,,,,,,unsourced,reach:unsourced,https://www.foxnews.com
+,nyt,The New York Times,print_digital,,,,,low,0,0,,,,,,,,,unsourced,reach:unsourced;no_scored_items,https://www.nytimes.com
+,politico,Politico,print_digital,,,,,low,4,0,,,,,,,,,unsourced,reach:unsourced;no_scored_items,https://www.politico.com
+,pbs_newshour,PBS NewsHour,tv,,,,,low,4,0,,,,,,,,,unsourced,reach:unsourced;no_scored_items,https://www.pbs.org/newshour
+,pod_save_america,Pod Save America,podcast,,,,,low,0,0,,,,,,,,,unsourced,reach:unsourced;no_scored_items,https://crooked.com/podcast-series/pod-save-america/
