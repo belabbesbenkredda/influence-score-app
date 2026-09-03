@@ -6,6 +6,7 @@ phone review).
 """
 from __future__ import annotations
 
+import base64
 import html
 import json
 import random
@@ -19,7 +20,23 @@ OXBLOOD = "#6B1F2B"
 PAPER = "#F7F3EC"
 INK = "#1C1A17"
 HANDCHECK_N = 20
+FONT_DIR = db.ROOT / "psi" / "assets" / "fonts"
 HANDCHECK_SEED = 20260903  # fixed so reruns produce the same 20 items
+
+
+def font_css() -> str:
+    """Inline the bundled woff2 faces as data: URIs so the page works offline.
+
+    Falls back to the system stacks already named in CSS if the files are absent.
+    """
+    faces = FONT_DIR / "faces.css"
+    if not faces.exists():
+        return "/* bundled fonts missing; falling back to system serif and monospace */"
+    css = faces.read_text(encoding="utf-8")
+    for path in FONT_DIR.glob("*.woff2"):
+        b64 = base64.b64encode(path.read_bytes()).decode("ascii")
+        css = css.replace(f"url(FONT:{path.name})", f"url(data:font/woff2;base64,{b64})")
+    return css
 
 
 def esc(v) -> str:
@@ -192,8 +209,7 @@ def run() -> None:
         n_outlets = con.execute("SELECT COUNT(*) FROM outlets WHERE country=?", (db.COUNTRY,)).fetchone()[0]
         n_sourced = con.execute("SELECT COUNT(*) FROM reach WHERE country=? AND reach_raw IS NOT NULL", (db.COUNTRY,)).fetchone()[0]
         n_unsourced = con.execute("SELECT COUNT(*) FROM reach WHERE country=? AND flag='unsourced'", (db.COUNTRY,)).fetchone()[0]
-        n_self = con.execute("SELECT COUNT(*) FROM reach WHERE country=? AND flag LIKE 'self_reported%'", (db.COUNTRY,)).fetchone()[0]
-        n_unver = con.execute("SELECT COUNT(*) FROM reach WHERE country=? AND flag LIKE '%unverified%'", (db.COUNTRY,)).fetchone()[0]
+        flag_counts = db.rows(con, "SELECT flag, COUNT(*) n FROM reach WHERE country=? GROUP BY flag ORDER BY n DESC", (db.COUNTRY,))
         spend = con.execute("SELECT COALESCE(SUM(cost_usd),0), COUNT(*) FROM scores").fetchone()
         pub_range = con.execute("SELECT MIN(published_at), MAX(published_at) FROM items WHERE country=? AND published_at IS NOT NULL", (db.COUNTRY,)).fetchone()
 
@@ -257,6 +273,18 @@ def run() -> None:
             f'<div class="item flag">{reach_line} · <a href="{esc(r["url"])}">{esc(r["url"])}</a></div>'
             + "".join(item_html) + "</details>")
 
+    FLAG_MEANING = {
+        "ok": "third-party figure, source page re-fetched and the quote found",
+        "self_reported": "the outlet's own published figure",
+        "secondary": "a trade estimate reproduced by another publication (all radio rows)",
+        "stale": "sourced but older than the rest of its type",
+        "scope_global": "worldwide visits; Semrush publishes no US-only split for this site",
+        "unverified": "the source page could not be re-fetched to confirm the number",
+        "unsourced": "no figure found; R is null and the outlet is unranked",
+    }
+    legend_html = " ".join(f'<span><b>{esc(f["flag"])}</b> {f["n"]}</span>' for f in flag_counts)
+    FLAG_GLOSS = " · ".join(f"<b>{k}</b> {v}" for k, v in FLAG_MEANING.items()
+                            if any(f["flag"] == k or f["flag"].startswith(k) for f in flag_counts))
     weights_txt = ", ".join(f'{w["type"]} {w["weight"]:.2f}' + (f' ({w["flag"]})' if w["flag"] not in (None, "ok") else "") for w in weights if w["weight"] is not None) or "not available"
     type_opts = "".join(f'<option value="{esc(t)}">{esc(t)}</option>' for t in types)
     score_meta = meta.get("score_run") or {}
@@ -264,8 +292,8 @@ def run() -> None:
     page = f"""<!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>PSI Influence Engine v0.2 — United States</title>
-<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-<style>{CSS}</style></head>
+<style>{font_css()}
+{CSS}</style></head>
 <body>
 <header>
   <div class="kicker">Public Sphere Index · Influence Engine v0.2 · United States</div>
@@ -318,7 +346,8 @@ def run() -> None:
     <li>Nothing is estimated by hand: missing figures are null and flagged, never guessed.</li>
   </ol>
   <p><b>Data dates.</b> Gallup MIP: {esc(meta.get("mip_survey_date"))} ({esc(meta.get("mip_provenance"))}). Items published {esc((pub_range[0] or "")[:10])} to {esc((pub_range[1] or "")[:10])}. Sampled {esc((meta.get("sample_run") or {}).get("at", "")[:16])}. Scored {esc(score_meta.get("at", "")[:16])}.</p>
-  <p class="legend"><b>Provenance flags.</b> <span><b>ok</b> third-party figure, verified</span> <span><b>self_reported</b> publisher-stated</span> <span><b>unverified</b> source page could not be re-fetched ({n_unver})</span> <span><b>unsourced</b> no figure found, R = null ({n_unsourced})</span> <span><b>self_reported</b> count: {n_self}</span></p>
+  <p class="legend"><b>Provenance flags on reach.</b> {legend_html}</p>
+  <p class="legend">{FLAG_GLOSS}</p>
   <p>Public Sphere Index — <a href="https://publicspheres.org">publicspheres.org</a>. Code and data: this repository (<span class="mono">python run.py all</span> reproduces everything).</p>
 </footer>
 <script>{JS}</script>

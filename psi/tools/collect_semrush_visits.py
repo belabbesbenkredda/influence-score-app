@@ -48,18 +48,32 @@ def fetch_visits(domain: str) -> dict:
         return {"url": url, "raw": None, "quote": None, "error": f"http_{r.status_code}"}
     text = re.sub(r"<[^>]+>", " ", r.text)
     text = re.sub(r"\s+", " ", text)
-    # Layout A (large domains): "In July nytimes.com received 493.01M visits"
+    # Preferred: the Traffic-by-Country table gives US-only visits, which is what a US index needs.
+    m = re.search(r"United States ([\d.]+)% ([\d.,]+)([KMB]?) ", text)
+    if m:
+        raw = float(m.group(2).replace(",", "")) * MULT[m.group(3)]
+        month = None
+        mm = re.search(r"Last updated: (January|February|March|April|May|June|July|August|September|October|November|December) \d+, (\d{4})", text)
+        mmm = re.search(r"All Devices (Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) (\d{4})", text)
+        if mmm:
+            month = {"Jan": "January", "Feb": "February", "Mar": "March", "Apr": "April", "May": "May", "Jun": "June",
+                     "Jul": "July", "Aug": "August", "Sep": "September", "Oct": "October", "Nov": "November", "Dec": "December"}[mmm.group(1)]
+        elif mm:
+            month = mm.group(1)
+        return {"url": url, "raw": raw, "quote": f"United States {m.group(1)}% {m.group(2)}{m.group(3)}", "month": month,
+                "us_share_pct": float(m.group(1)), "scope": "us", "error": None}
+    # Fallback A (large domains, no country table): "In July nytimes.com received 493.01M visits"
     m = re.search(r"In (January|February|March|April|May|June|July|August|September|October|November|December) " + re.escape(domain) + r" received ([\d.,]+)([KMB]?) visits", text)
     if m:
         raw = float(m.group(2).replace(",", "")) * MULT[m.group(3)]
-        return {"url": url, "raw": raw, "quote": m.group(0), "month": m.group(1), "error": None}
-    # Layout B (smaller domains): "Total Visits last 2 months Jun 3.57M May 3.47M"
+        return {"url": url, "raw": raw, "quote": m.group(0), "month": m.group(1), "scope": "global", "error": None}
+    # Fallback B (smaller domains): "Total Visits last 2 months Jun 3.57M May 3.47M"
     m = re.search(r"Total Visits last 2 months (Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) ([\d.,]+)([KMB]?)", text)
     if m:
         raw = float(m.group(2).replace(",", "")) * MULT[m.group(3)]
         month = {"Jan": "January", "Feb": "February", "Mar": "March", "Apr": "April", "May": "May", "Jun": "June",
                  "Jul": "July", "Aug": "August", "Sep": "September", "Oct": "October", "Nov": "November", "Dec": "December"}[m.group(1)]
-        return {"url": url, "raw": raw, "quote": m.group(0), "month": month, "error": None}
+        return {"url": url, "raw": raw, "quote": m.group(0), "month": month, "scope": "global", "error": None}
     return {"url": url, "raw": None, "quote": None, "error": "no_visits_figure_on_page"}
 
 
@@ -73,11 +87,17 @@ def main() -> None:
         if not dom:
             continue
         res = fetch_visits(dom)
-        res.update({"domain": dom, "unit": "monthly_visits_semrush", "source": "Semrush website overview (monthly visits estimate)",
-                    "tier": 3, "flag": "ok" if res["raw"] else "unsourced", "date": today,
+        scope = res.get("scope", "global")
+        res.update({"domain": dom,
+                    # One unit for the whole type: giving the worldwide-scope rows their own group would
+                    # normalise the largest of them to 1.0, level with the largest US-scope outlet. The scope
+                    # caveat (<= ~20% for US-centric sites) rides on the row as flag scope_global instead.
+                    "unit": "monthly_visits_semrush",
+                    "source": f"Semrush website overview ({'US visits' if scope == 'us' else 'worldwide visits, no US split published'})",
+                    "tier": 3, "flag": ("unsourced" if not res["raw"] else ("ok" if scope == "us" else "scope_global")), "date": today,
                     "period": f"2026-{['January','February','March','April','May','June','July','August','September','October','November','December'].index(res['month'])+1:02d}" if res.get("month") else None})
         results[o["outlet_id"]] = res
-        print(f"  {o['outlet_id']:22s} {dom:28s} {res['raw'] if res['raw'] is not None else 'null':>14} {res.get('quote') or res.get('error')}")
+        print(f"  {o['outlet_id']:22s} {dom:26s} {res['raw'] if res['raw'] is not None else 'null':>13} {res['flag']:14s} {res.get('quote') or res.get('error')}")
         time.sleep(0.8)
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(json.dumps(results, indent=1), encoding="utf-8")

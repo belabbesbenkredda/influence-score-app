@@ -1,77 +1,104 @@
 # Reach (R) — sources and normalisation
 
-This note explains where every audience figure comes from and how it is
-turned into the 0–1 `R` used in `I = R × S × D`. The per-outlet table with
-links is auto-generated in `reach_table.md` by `python run.py reach`; the
-editable source file is `reach_seed.csv`.
+This note says where every audience figure comes from and how it becomes the
+0–1 `R` in `I = R × S × D`. The per-outlet table with links is generated into
+`reach_table.md` by `python run.py reach`. The editable source file is
+`reach_seed.csv`; the raw collector output is under `data/raw/`.
 
-## Provenance rules
+## The rule that matters
 
-- Every figure has `reach_source_url`, a verbatim `reach_source_quote`
-  copied from that page, and `reach_date` (the period the figure describes).
-- Figures were found by research agents and then re-checked by a separate
-  fact-check pass that fetched each URL and looked for the number, the
-  outlet name and the unit. `verify_verdict` in `reach_seed.csv` records the
-  outcome:
-  - `verified` → flag stays `ok` (or `self_reported`).
-  - `unverifiable` (page blocked the checker) → flag becomes `unverified`.
-  - `refuted` (page loaded but did not support the figure) → `reach_raw` is
-    set to null and the flag becomes `unsourced`. The candidate figure is
-    kept in `notes` for a human to check.
-- No figure is ever typed in from memory. Missing = `null` + `unsourced`.
+No figure is ever written from memory or inferred. Every row either has a
+URL that was fetched, a verbatim quote from that page containing the number,
+and a date — or it has `reach_raw` empty and `flag = unsourced`. 16 of 124
+outlets are unsourced and they are visible as such everywhere.
 
-Source tiers (from the brief, best first):
+## What was used, by type
 
-| Tier | Source |
+| Type | Unit | Source | Sourced |
+|---|---|---|---|
+| print_digital | monthly visits | Semrush website-overview pages, July 2026 (June for smaller domains; the month is on each row) | 43 / 52 |
+| cable | average total-day viewers | Nielsen via MediaPost (July 2026); Fox Business Q2 2026 press release for FBN/CNBC | 7 / 8 |
+| tv | average total viewers, flagship newscast | Nielsen via Deadline (Q2 2026); The Desk (Univision/Telemundo, week to 12 July 2026); Pew (PBS, 2022) | 6 / 7 |
+| radio | estimated weekly listeners | Talkers estimates reproduced in Wikipedia's most-listened-to radio programs table | 9 / 12 |
+| podcast | YouTube channel subscribers | The channel's own public count, read off the page | 29 / 30 |
+| newsletter | subscribers | The publication's own page ("Over N subscribers") | 14 / 15 |
+
+### Why Semrush and not Press Gazette or Comscore
+
+The brief asked for Comscore or Press Gazette monthly US uniques. Press
+Gazette's "Top 50 news websites in the US" page returns 403 to this runner and
+publishes no machine-readable table; Comscore publishes no free ranking. Both
+would also have covered only the largest 50 outlets, leaving most of the 52
+digital outlets here unsourced. Semrush's per-domain overview page gives one
+estimate, in one unit, for every domain it covers, which is what a
+within-type ranking needs. It is a panel-and-clickstream estimate like
+Similarweb's, not a census. Eight outlets have no Semrush page and stay
+unsourced rather than being filled from a different unit.
+
+### Why radio is weak
+
+There is no public per-host audience table for American talk radio. Nielsen
+does not compile nationwide figures by host, Arbitron said in 2009 the job was
+"too complicated, expensive and difficult", and Talkers' own top-talk-audiences
+page now 404s. The figures used are Talkers' estimates as reproduced in
+Wikipedia's table, which Talkers itself describes as non-scientific and which
+carries no date. They are flagged `secondary` and should be read as an ordering,
+not a measurement.
+
+## Provenance flags
+
+| Flag | Meaning |
 |---|---|
-| 1 | Pew Research Center fact sheets |
-| 2 | Nielsen (via trade press) |
-| 3 | Comscore / Press Gazette (Similarweb) |
-| 4 | Reuters Institute Digital News Report |
-| 5 | Edison Research, YouTube public counts |
-| 6 | Publisher-stated (`self_reported`) |
+| `ok` | third-party figure, source page re-fetched and the quote found |
+| `self_reported` | the outlet's own published figure (newsletters, NPR, Fox Business release) |
+| `secondary` | a trade estimate reproduced by another publication (all radio rows) |
+| `stale` | sourced but older than the rest (PBS NewsHour, 2022) |
+| `unverified` | the source page could not be re-fetched to confirm the number |
+| `unsourced` | no figure found; `R` is null and the outlet is unranked |
 
-## Units by outlet type
+## Verification
 
-Units differ by type because the industry measures them differently.
+`python -m psi.tools.verify_reach` re-fetches every source URL and checks that
+the recorded quote appears in the live page — or, failing an exact match, that
+the quote's distinctive number and a distinctive word from it both appear.
+It writes `verify_verdict` back into `reach_seed.csv`:
 
-| Type | Unit |
-|---|---|
-| tv | average total viewers, flagship evening newscast (Nielsen) |
-| cable | average total-day viewers (Nielsen); primetime noted when that is all that exists |
-| print_digital | monthly US visits (Press Gazette / Similarweb) or Comscore monthly US uniques |
-| radio | estimated weekly listeners (Talkers, Nielsen Audio, syndicator) |
-| podcast | YouTube channel subscribers (public); Edison rank in notes |
-| newsletter | subscribers as printed by the publication or reported in press |
+- `verified` → the flag stands.
+- `unverifiable` (page blocked or timed out) → flag becomes `unverified`; the
+  figure is kept.
+- `refuted` (page loaded, number absent) → `run.py reach` **nulls the figure**
+  and sets `unsourced`, keeping the candidate value in `notes` for a human.
+
+No model is involved. It is a deterministic text search, so it can be rerun.
 
 ## Normalisation (two steps)
 
-**Step 1 — within type.** Inside each `(type, unit)` group the largest
-outlet is 1.0 and everyone else is a fraction of it:
+**Within type.** Inside each `(type, unit)` group the largest outlet is 1.0:
 
-    reach_norm_type = reach_raw / max(reach_raw in same type and unit)
+    reach_norm_type = reach_raw / max(reach_raw in the same type and unit)
 
-Groups are keyed on unit as well as type so that, say, a Comscore
-unique-visitor figure is never divided by a Similarweb visits figure.
-Groups with fewer than 3 outlets are noted in `notes`.
+Grouping on unit as well as type means a Nielsen total-day figure is never
+divided by a monthly-visits figure. Groups with fewer than three outlets are
+noted per row.
 
-**Step 2 — across types.** Each type's leader is scaled by how much of the
-US adult public that platform reaches for news, from Pew Research Center's
-News Platform Fact Sheet (`type_weights.csv`, with URL, quote and date):
+**Across types.** Each type is then scaled by how much of the American public
+that platform reaches for news, from Pew's News Platform Fact Sheet (survey of
+US adults, 18–24 August 2025), in `type_weights.csv` with quote and URL:
 
     weight[type] = platform_share[type] / max(platform_share over types)
     reach_norm   = reach_norm_type × weight[type]
 
-Where Pew has no platform figure for a type, the nearest platform's share
-is borrowed and flagged `proxy` (cable ← television; newsletter ← news
-websites/apps). The weights in force for this run are printed at the top
-of `reach_table.md`.
+Pew shares used: television 64, news websites or apps 65, radio 44, podcasts
+32, email newsletters 30 (percent who get news there often or sometimes).
+Cable borrows the television share because Pew does not split cable from
+broadcast; that row is flagged `proxy`.
 
-## What this does not do
+## What this does not claim
 
-- It does not convert viewers, visits, listeners and subscribers into one
-  another. A "1.0" in each type means "the biggest in its type", scaled by
-  the platform's overall reach. That is a ranking convenience, not a claim
-  that one Fox News viewer equals one NYT visit.
-- It does not measure attention per item. Reach is outlet-level in v0.2.
-- Self-reported figures (`self_reported`) are included but visibly flagged.
+- Viewers, visits, listeners and subscribers are not converted into one
+  another. A 1.0 means "largest in its type", scaled by that platform's
+  overall news reach. Cross-type comparison is a ranking convention, not an
+  equivalence.
+- Reach is outlet-level. No per-item audience data is used in v0.2.
+- Estimates from panel-based vendors (Semrush) and trade estimates (Talkers)
+  carry real error bars that are not modelled here.

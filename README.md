@@ -94,8 +94,13 @@ few dollars.
   national outlets, with feeds and transcript pages verified by fetching.
 - **Reach** figures come from the sources listed per outlet in
   `data/reach_table.md`, each with a link and a verbatim quote, then
-  re-checked by a second pass that fetched every URL. See
-  `data/reach_sources.md` for the tiering and normalisation.
+  re-checked by a pass that fetches every URL again and looks for the
+  quote. By type: Semrush monthly visits for websites, Nielsen figures
+  reported in the trade press for TV and cable, public YouTube
+  subscriber counts for podcasts, publications' own subscriber counts
+  for newsletters, and Talkers estimates for radio. See
+  `data/reach_sources.md` for why each was used and how they are
+  normalised.
 - **Salience** is Gallup's Most Important Problem table
   (news.gallup.com/poll/1675), latest monthly column.
 - **Content** was fetched from each outlet's RSS feed, website or
@@ -105,21 +110,28 @@ few dollars.
 
 ## Known limitations
 
-- **No fabricated figures, so there are gaps.** Outlets without a sourced
-  reach figure appear in the tables with R = null and no rank. Flags
-  (`unsourced`, `self_reported`, `unverified`) are shown everywhere.
+- **No fabricated figures, so there are gaps.** 16 of 124 outlets have no
+  sourced reach figure; they appear in the tables with R = null and no
+  rank. Flags (`unsourced`, `self_reported`, `secondary`, `stale`,
+  `unverified`) are shown everywhere.
+- **Radio reach is the weakest column.** No public per-host audience
+  table exists for American talk radio, so those rows use Talkers'
+  self-described non-scientific estimates, flagged `secondary`.
 - **Cross-type reach is a convention.** Viewers, visits, listeners and
   subscribers are not the same thing. Each type is scaled to its leader
   and then by Pew's platform share; treat cross-type comparisons as
   indicative.
+- **Reach and scores cover different sets of outlets.** 108 of 124 outlets
+  have a sourced reach figure and 84 have sampled items, but only 74 have
+  both, so only 74 are ranked. The rest appear in the tables unranked.
 - **Some big sites block automated fetching** (New York Times, Wall
-  Street Journal, Reuters, Bloomberg, Washington Post). Their items are
-  thin or missing in this run; see `RUNLOG.md`. Running the `sample` stage
-  from a normal home connection fills most of these.
+  Street Journal, Washington Post, Bloomberg, Reuters, USA Today, The
+  Hill). They have reach figures but no scored items in this run. Running
+  the `sample` stage from a normal home connection fills most of these.
 - **YouTube captions were blocked from the cloud runner**, so TV, cable,
   radio and podcast outlets were sampled from their own published
-  transcripts and articles instead of broadcast captions. Podcasts that
-  publish only show notes have few or no items.
+  transcripts and articles instead of broadcast captions. 20 of the 30
+  podcasts publish only show notes and so have no scored items.
 - **Discursiveness is model-judged.** The rubric is public and versioned,
   the model's justification is stored per item, and
   `out/handcheck_sample.md` exists so a human can audit it.

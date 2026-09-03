@@ -26,9 +26,14 @@ pipeline.
 
 ## Other loose ends
 
-- YouTube transcripts were blocked from the cloud runner in this run; running
-  `python run.py sample` from a residential IP (or with cookies) will fill
-  the TV/cable/podcast gaps with actual broadcast transcripts.
+- YouTube transcripts were blocked from the cloud runner in this run, and 20
+  of the 30 podcasts have no other public transcript, so they carry a reach
+  figure but no score. Running `python run.py sample` from a residential IP
+  (or with cookies) fills that gap and would add roughly 150 items.
+- Ten large publishers (New York Times, Wall Street Journal, Washington Post,
+  Bloomberg, Reuters, USA Today, The Hill and others) block automated article
+  fetching, so they are sourced for reach but unscored. A licensed feed, or a
+  browser-based fetch, closes that hole.
 - Canada: set `PSI_COUNTRY=CA`, add a `data/outlets_seed_CA.csv` and a
   Canadian salience table (Environics/Abacus "most important issue"), and the
   schema already keeps countries apart.

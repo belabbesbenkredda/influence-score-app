@@ -160,3 +160,82 @@ No model is involved; it is a plain text search.
 
 **Spend so far**: ~$0.22 (smoke tests). Scoring 576 items now,
 estimated $8-12.
+
+## 2026-09-03 — Checkpoint B: first full run complete
+
+`python run.py all` ran all seven stages end to end and reproduced
+everything. Scoring is resume-safe: the rerun added 48 new items,
+scored only those 5 that met the word floor, and left the other 576
+alone.
+
+**Top 10 by I = R × S × D**
+
+| # | Outlet | I |
+|---|---|---|
+| 1 | ABC News (tv) | 0.0743 |
+| 2 | Fox News Channel (cable) | 0.0642 |
+| 3 | NBC News (tv) | 0.0393 |
+| 4 | Marketplace (radio) | 0.0336 |
+| 5 | The Mark Levin Show (radio) | 0.0299 |
+| 6 | MS NOW (cable) | 0.0297 |
+| 7 | Letters from an American (newsletter) | 0.0285 |
+| 8 | Clay Travis & Buck Sexton (radio) | 0.0268 |
+| 9 | CNN (cable) | 0.0263 |
+| 10 | CBS News (tv) | 0.0252 |
+
+**Counts**
+- 124 outlets, 108 with sourced reach, 581 items, 581 scored,
+  75 ranked (60 high confidence, 7 medium, 8 low).
+- Reach flags: ok 63, scope_global 20, unsourced 16,
+  self_reported 15, secondary 9, stale 1.
+- Fact-check: all 108 figures re-fetched and matched. 0 refuted.
+
+**Estimated total spend: $3.90** (581 items, claude-sonnet-5,
+about $0.0067 each). Guardrail was $25.
+
+**What looked wrong, and what I did**
+
+1. *Semrush was giving worldwide traffic.* First pass ranked BBC
+   News above every US outlet but the NYT on 404m visits. Semrush
+   publishes a US-only split, so the collector now reads that
+   (BBC US = 100m). 20 smaller sites have no US split published;
+   they keep the worldwide figure and are flagged `scope_global`.
+   Putting them in their own group would have normalised Newsweek
+   to 1.0, level with the NYT.
+2. *Radio is the weakest column.* No public per-host audience table
+   exists any more. The 9 radio figures are Talkers estimates
+   reproduced by Wikipedia, undated, flagged `secondary`. Marketplace
+   at #4 and Levin at #5 rest on those numbers; treat that part of
+   the ranking as indicative.
+3. *Only 75 of 124 outlets are ranked.* 16 have no reach figure and
+   34 have reach but no scored items, because their content could not
+   be fetched: 20 podcasts publish only show notes (YouTube captions
+   are blocked from this IP) and 10 large publishers (NYT, WSJ, WaPo,
+   Bloomberg, Reuters, USA Today, The Hill) block automated fetching.
+   Those outlets appear unranked rather than being scored on thin data.
+4. *ABC News tops the list* on the strength of World News Tonight's
+   8.2m viewers, the largest audience in any type here. That is the
+   formula working as specified; it does mean R dominates I when one
+   type's leader is far ahead.
+5. *Gallup served two versions of its page* during the session (July
+   and August columns on alternate fetches). Every parseable copy is
+   now cached by survey month and the newest wins. This run uses
+   August 2026.
+
+**Scoring sanity**: mean Logos 5.0, Ethos 5.2, Pathos 5.1, D 15.3/30.
+Highest D over 6+ items: The New Yorker and ProPublica (0.696).
+Lowest: Noticias Telemundo (0.283) and Louder with Crowder (0.333).
+Nine items were truncated at 6,000 words and are flagged in the DB.
+`out/handcheck_sample.md` has 20 items for BB to check by hand.
+
+**Report**: `out/report.html` (752 KB) verified to open with the
+network fully blocked — no requests attempted, no console errors,
+fonts embedded as data URIs, sorting and filtering work. Copied to
+`docs/index.html`.
+
+**Definition of done**
+- [x] >= 110 outlets (124), >= 60 sourced reach (108), 0 fabricated
+- [x] MIP table with Gallup provenance and survey date (2026-08)
+- [x] >= 300 scored items (581); ranked CSV/JSON; offline report
+- [x] handcheck sample, RUNLOG, README for a non-developer
+- [x] `python run.py all` reproduces everything

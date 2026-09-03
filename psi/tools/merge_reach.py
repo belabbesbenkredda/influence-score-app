@@ -50,7 +50,10 @@ def main() -> None:
         elif oid in semrush and semrush[oid].get("raw"):
             s = semrush[oid]
             src = {"raw": s["raw"], "unit": s["unit"], "source": s["source"], "url": s["url"], "quote": s["quote"],
-                   "date": s.get("period") or s["date"], "tier": s["tier"], "flag": s["flag"], "notes": f"domain {s['domain']}; fetched {s['date']}"}
+                   "date": s.get("period") or s["date"], "tier": s["tier"], "flag": s["flag"],
+                   "notes": (f"domain {s['domain']}; fetched {s['date']}; "
+                             + (f"US visits ({s['us_share_pct']}% of worldwide)" if s.get("scope") == "us"
+                                else "worldwide visits — Semrush publishes no country split for this domain, so the figure is not US-only"))}
         elif oid in counts and counts[oid].get("raw"):
             c = counts[oid]
             src = {"raw": c["raw"], "unit": c["unit"], "source": c["source"], "url": c["url"], "quote": c["quote"],
