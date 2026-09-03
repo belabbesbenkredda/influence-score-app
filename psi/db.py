@@ -14,7 +14,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 DATA = ROOT / "data"
 OUT = ROOT / "out"
-DB_PATH = OUT / "psi.sqlite"
+DB_PATH = Path(os.environ.get("PSI_DB_PATH", OUT / "psi.sqlite"))
 
 COUNTRY = os.environ.get("PSI_COUNTRY", "US")
 
@@ -27,7 +27,9 @@ CREATE TABLE IF NOT EXISTS outlets (
     url            TEXT,
     rss_url        TEXT,
     youtube_channel TEXT,
+    youtube_channel_id TEXT,
     transcript_url TEXT,            -- index page of published transcripts/segments (TV/radio/podcast)
+    status         TEXT NOT NULL DEFAULT 'active',  -- active | defunct | uncertain
     notes          TEXT
 );
 
