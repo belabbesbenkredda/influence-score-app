@@ -102,25 +102,37 @@ _MONTHS = {m: i for i, m in enumerate(["Jan", "Feb", "Mar", "Apr", "May", "Jun",
 
 
 def fetch_page() -> tuple[str, str]:
-    """Return (html, provenance). Live fetch first (cached only if it parses), then cached copies newest first."""
+    """Return (html, provenance) for the newest survey month available.
+
+    Gallup's CDN can serve two versions of the page on the same day (e.g. July
+    and August columns). Every parseable copy is cached under its survey month
+    and the newest month wins, so reruns are deterministic once a copy is in
+    the repo.
+    """
     RAW_DIR.mkdir(parents=True, exist_ok=True)
+    live_note = ""
     try:
         r = requests.get(GALLUP_URL, headers=UA, timeout=30)
         r.raise_for_status()
-        latest, rows = parse_mip_table(r.text)
-        stamp = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-        path = RAW_DIR / f"gallup_mip_1675_{stamp}.html"
-        path.write_text(r.text, encoding="utf-8")
-        return r.text, f"live fetch {stamp} (latest column {latest}), cached to {path.name}"
+        latest, _ = parse_mip_table(r.text)
+        month = month_label_to_date(latest)
+        path = RAW_DIR / f"gallup_mip_1675_{month}.html"
+        if not path.exists():
+            path.write_text(r.text, encoding="utf-8")
+        live_note = f"live fetch {datetime.now(timezone.utc).strftime('%Y-%m-%d')} served the {month} column"
     except (requests.RequestException, ValueError) as exc:
-        print(f"  live Gallup fetch unusable ({exc}); trying cached copies")
-    for cached in sorted(RAW_DIR.glob("gallup_mip_1675_*.html"), reverse=True):
+        live_note = f"live fetch unusable ({exc})"
+    candidates = []
+    for cached in RAW_DIR.glob("gallup_mip_1675_*.html"):
         try:
-            parse_mip_table(cached.read_text(encoding="utf-8"))
-            return cached.read_text(encoding="utf-8"), f"cached copy {cached.name}"
+            latest, _ = parse_mip_table(cached.read_text(encoding="utf-8"))
+            candidates.append((month_label_to_date(latest), cached))
         except ValueError:
             continue
-    raise SystemExit("No parseable Gallup page available (live fetch failed and no usable cache). Cannot build salience.")
+    if not candidates:
+        raise SystemExit(f"No parseable Gallup page available ({live_note}). Cannot build salience.")
+    month, best = max(candidates)
+    return best.read_text(encoding="utf-8"), f"{live_note}; using {best.name} ({month}, newest of {len(candidates)} cached copies)"
 
 
 def parse_mip_table(page: str) -> tuple[str, list[tuple[str, str]]]:

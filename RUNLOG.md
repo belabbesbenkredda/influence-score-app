@@ -75,3 +75,22 @@ workflow (Stages 1-2).
   (sports, cooking, arts...) are filtered out of every path.
 
 **Spend so far**: ~$0.07 (6 smoke-test items).
+
+**Gallup note (2026-09-03, later)**
+- Gallup posted the August 2026 MIP column during this session.
+  Its CDN served the July page and the August page on alternate
+  fetches. Fix: every parseable copy is cached under its survey
+  month (`data/raw/gallup_mip_1675_2026-07.html`, `..._2026-08.html`)
+  and the newest month wins. This run uses **August 2026**:
+  government/leadership 25%, economy 23%, inflation/cost of
+  living 19%, foreign policy/wars 12%, immigration 10%.
+- Header formats differ between versions ("Jul 2026" vs
+  "26-Aug"); the parser accepts both.
+
+**Sampler additions after the outlet research came back**
+- NPR feeds reject browser user agents: added a plain-UA retry.
+- AP, Reuters, Newsweek, USA Today have no working RSS: added a
+  front-page link harvest fallback (works for AP; USA Today's
+  pages are JavaScript-only, so it stays thin).
+- 60 Minutes dropped from the universe: it is a show, CBS News
+  already covers it.

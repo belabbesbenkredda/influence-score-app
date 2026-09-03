@@ -115,9 +115,15 @@ def within_window(iso: str | None) -> bool | None:
         return None
 
 
+PLAIN_UA = {"User-Agent": "psi-influence-engine/0.2 (+https://publicspheres.org)"}
+
+
 def fetch_html(url: str, timeout: int = 20) -> tuple[str | None, str]:
     try:
         r = requests.get(url, headers=UA, timeout=timeout, allow_redirects=True)
+        if r.status_code in (403, 406):
+            # some hosts (npr.org) reject browser UAs and accept a plain one
+            r = requests.get(url, headers=PLAIN_UA, timeout=timeout, allow_redirects=True)
     except requests.RequestException as exc:
         return None, f"error:{type(exc).__name__}"
     if r.status_code != 200:
@@ -151,6 +157,10 @@ def rss_candidates(outlet: dict) -> list[dict]:
         return []
     try:
         feed = feedparser.parse(outlet["rss_url"], request_headers=UA)
+        if not feed.entries and getattr(feed, "status", 200) in (403, 406):
+            feed = feedparser.parse(outlet["rss_url"], request_headers=PLAIN_UA)
+        if not feed.entries:
+            return [{"error": f"rss_empty_status_{getattr(feed, 'status', 'na')}"}]
     except Exception as exc:  # feedparser is very forgiving; this is belt and braces
         return [{"error": f"rss_error:{type(exc).__name__}"}]
     out = []
@@ -220,6 +230,18 @@ def transcript_candidates(outlet: dict) -> list[dict]:
                 links.extend(l for l in more if l not in links)
             time.sleep(0.3)
     return [{"url": l, "title": None, "published": None, "fulltext": None, "source": "transcript_page"} for l in links[:MAX_CANDIDATES]]
+
+
+def homepage_candidates(outlet: dict) -> list[dict]:
+    """Outlets without a working feed: harvest current article links from the site's front page."""
+    home = outlet.get("url")
+    if not home:
+        return []
+    html, status = fetch_html(home)
+    if not html:
+        return [{"error": f"homepage_{status}"}]
+    links, _ = harvest_links(home, html)
+    return [{"url": l, "title": None, "published": None, "fulltext": None, "source": "homepage"} for l in links[:MAX_CANDIDATES]]
 
 
 def youtube_candidates(outlet: dict) -> list[dict]:
@@ -305,7 +327,7 @@ def sample_outlet(outlet: dict, have: int) -> dict:
         if words(text) < MIN_WORDS:
             log_miss(cand["url"], f"short_{words(text)}w")
             return False
-        if method == "transcript_page" and looks_like_listing(text):
+        if method in ("transcript_page", "homepage_fetch") and looks_like_listing(text):
             log_miss(cand["url"], "listing_page")
             return False
         if not title or len(title.split()) < 3 or title.strip().lower() in {"transcripts", "transcript", "(untitled)"}:
@@ -357,7 +379,7 @@ def sample_outlet(outlet: dict, have: int) -> dict:
             if within_window(published) is False:
                 log_miss(url, "stale")
                 continue
-            method = "transcript_page" if c["source"] == "transcript_page" else "page_fetch"
+            method = "transcript_page" if c["source"] == "transcript_page" else ("homepage_fetch" if c["source"] == "homepage" else "page_fetch")
             title = c.get("title") if c["source"] == "rss" else (art.get("title") or c.get("title"))
             if accept(c, art.get("text") or "", method, title=title, published=published):
                 need -= 1
@@ -370,6 +392,8 @@ def sample_outlet(outlet: dict, have: int) -> dict:
         consume(rss_candidates(outlet), "rss")
     if need > 0 and broadcast:
         consume(youtube_candidates(outlet), "youtube")
+    if need > 0 and (have + len(items)) < MIN_PER_OUTLET:
+        consume(homepage_candidates(outlet), "homepage")
     if need > 0 and (have + len(items)) < MIN_PER_OUTLET:
         consume(gdelt_candidates(outlet), "gdelt")
     return {"outlet_id": oid, "items": items, "log": log}
