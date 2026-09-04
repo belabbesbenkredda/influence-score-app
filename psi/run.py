@@ -15,7 +15,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-STAGES = ["outlets", "reach", "salience", "sample", "score", "aggregate", "report"]
+STAGES = ["outlets", "reach", "salience", "sample", "signals", "score", "aggregate", "report"]
 
 
 def run_stage(name: str) -> None:
@@ -30,7 +30,8 @@ def status() -> None:
     from psi import db
 
     with db.db() as con:
-        for t in ["outlets", "reach", "type_weights", "mip", "mip_raw", "items", "fetch_log", "scores", "outlet_scores"]:
+        for t in ["outlets", "reach", "type_weights", "mip", "mip_raw", "items", "fetch_log", "item_signals",
+                  "scores", "scores2", "item_topics", "item_scores", "outlet_scores"]:
             n = con.execute(f"SELECT COUNT(*) FROM {t}").fetchone()[0]
             print(f"{t:15s} {n}")
 

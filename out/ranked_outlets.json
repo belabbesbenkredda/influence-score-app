@@ -1,6 +1,6 @@
 {
  "country": "US",
- "computed_at": "2026-09-04T00:22:10.362981+00:00",
+ "computed_at": "2026-09-04T00:57:45.699876+00:00",
  "note": "Outlet score is the mean influence of one sampled item, not a period total.",
  "outlets": [
   {
@@ -32,13 +32,13 @@
    "name": "NBC News",
    "type": "tv",
    "R": 0.024236641221374047,
-   "S": 0.13043749999999998,
-   "D": 0.37916666666666665,
-   "I_mean_item": 0.0011600767334605598,
+   "S": 0.1255,
+   "D": 0.3952380952380952,
+   "I_mean_item": 0.0011734573791348602,
    "best_item_I": 0.0013552321882951653,
    "confidence": "high",
-   "n_items": 8,
-   "n_scored": 8,
+   "n_items": 7,
+   "n_scored": 7,
    "r_people": 6350000.0,
    "reach_raw": 6350000.0,
    "reach_unit": "avg_total_viewers_flagship_newscast",
@@ -373,52 +373,6 @@
   },
   {
    "rank": 17,
-   "outlet_id": "bulwark_podcast",
-   "name": "The Bulwark Podcast (now The Bulwark Daily)",
-   "type": "podcast",
-   "R": 0.0013358778625954199,
-   "S": 0.1505,
-   "D": 0.5333333333333333,
-   "I_mean_item": 0.0001072264631043257,
-   "best_item_I": 0.0001072264631043257,
-   "confidence": "low",
-   "n_items": 1,
-   "n_scored": 1,
-   "r_people": 350000.0,
-   "reach_raw": 1750000.0,
-   "reach_unit": "youtube_subscribers",
-   "reach_flag": "ok",
-   "reach_source": "YouTube channel page (public count)",
-   "reach_source_url": "https://www.youtube.com/channel/UCG4Hp1KbGw4e02N7FpPXDgQ/about",
-   "reach_date": "2026-09-03",
-   "r_basis": "subscribers x PODCAST_EPISODE_VIEW_RATE x (1 + PODCAST_AUDIO_MULTIPLE) (UNADJUSTED: no public country split for this platform)",
-   "url": "https://www.thebulwark.com/s/bulwarkpodcast"
-  },
-  {
-   "rank": 18,
-   "outlet_id": "univision_noticias",
-   "name": "N+ Univision (Noticias Univision)",
-   "type": "tv",
-   "R": 0.004809160305343512,
-   "S": 0.0632,
-   "D": 0.4,
-   "I_mean_item": 0.00010427862595419849,
-   "best_item_I": 0.000161587786259542,
-   "confidence": "medium",
-   "n_items": 5,
-   "n_scored": 5,
-   "r_people": 1260000.0,
-   "reach_raw": 1260000.0,
-   "reach_unit": "avg_total_viewers_flagship_newscast",
-   "reach_flag": "ok",
-   "reach_source": "Nielsen via The Desk (week ending 2026-07-12)",
-   "reach_source_url": "https://thedesk.net/2026/07/telemundo-fifa-world-cup-ratings-univision/",
-   "reach_date": "2026-07-12",
-   "r_basis": "programme average viewers x TV_SEGMENT_SHARE (US-only by construction)",
-   "url": "https://www.univision.com/noticias"
-  },
-  {
-   "rank": 19,
    "outlet_id": "cnn",
    "name": "CNN",
    "type": "cable",
@@ -441,7 +395,7 @@
    "url": "https://www.cnn.com"
   },
   {
-   "rank": 20,
+   "rank": 18,
    "outlet_id": "charlie_kirk_show",
    "name": "The Charlie Kirk Show",
    "type": "podcast",
@@ -462,6 +416,52 @@
    "reach_date": "2026-09-03",
    "r_basis": "subscribers x PODCAST_EPISODE_VIEW_RATE x (1 + PODCAST_AUDIO_MULTIPLE) (UNADJUSTED: no public country split for this platform)",
    "url": "https://thecharliekirkshow.com/"
+  },
+  {
+   "rank": 19,
+   "outlet_id": "bulwark_podcast",
+   "name": "The Bulwark Podcast (now The Bulwark Daily)",
+   "type": "podcast",
+   "R": 0.0013358778625954199,
+   "S": 0.141625,
+   "D": 0.525,
+   "I_mean_item": 9.935034987277354e-05,
+   "best_item_I": 0.00012149809160305344,
+   "confidence": "high",
+   "n_items": 8,
+   "n_scored": 8,
+   "r_people": 350000.0,
+   "reach_raw": 1750000.0,
+   "reach_unit": "youtube_subscribers",
+   "reach_flag": "ok",
+   "reach_source": "YouTube channel page (public count)",
+   "reach_source_url": "https://www.youtube.com/channel/UCG4Hp1KbGw4e02N7FpPXDgQ/about",
+   "reach_date": "2026-09-03",
+   "r_basis": "subscribers x PODCAST_EPISODE_VIEW_RATE x (1 + PODCAST_AUDIO_MULTIPLE) (UNADJUSTED: no public country split for this platform)",
+   "url": "https://www.thebulwark.com/s/bulwarkpodcast"
+  },
+  {
+   "rank": 20,
+   "outlet_id": "univision_noticias",
+   "name": "N+ Univision (Noticias Univision)",
+   "type": "tv",
+   "R": 0.004809160305343512,
+   "S": 0.055333333333333345,
+   "D": 0.4166666666666667,
+   "I_mean_item": 9.33110687022901e-05,
+   "best_item_I": 0.000161587786259542,
+   "confidence": "high",
+   "n_items": 6,
+   "n_scored": 6,
+   "r_people": 1260000.0,
+   "reach_raw": 1260000.0,
+   "reach_unit": "avg_total_viewers_flagship_newscast",
+   "reach_flag": "ok",
+   "reach_source": "Nielsen via The Desk (week ending 2026-07-12)",
+   "reach_source_url": "https://thedesk.net/2026/07/telemundo-fifa-world-cup-ratings-univision/",
+   "reach_date": "2026-07-12",
+   "r_basis": "programme average viewers x TV_SEGMENT_SHARE (US-only by construction)",
+   "url": "https://www.univision.com/noticias"
   },
   {
    "rank": 21,
@@ -534,6 +534,29 @@
   },
   {
    "rank": 24,
+   "outlet_id": "nyt",
+   "name": "The New York Times",
+   "type": "print_digital",
+   "R": 0.0015754770992366413,
+   "S": 0.1474375,
+   "D": 0.2375,
+   "I_mean_item": 4.958157721055979e-05,
+   "best_item_I": 8.65462086513995e-05,
+   "confidence": "high",
+   "n_items": 8,
+   "n_scored": 8,
+   "r_people": 412775.0,
+   "reach_raw": 330220000.0,
+   "reach_unit": "monthly_visits_semrush",
+   "reach_flag": "ok",
+   "reach_source": "Semrush website overview (US visits)",
+   "reach_source_url": "https://www.semrush.com/website/nytimes.com/overview/",
+   "reach_date": "2026-07",
+   "r_basis": "monthly visits / DIGITAL_ITEMS_PER_MONTH (already US-only (Semrush country split)); a visit is not a read",
+   "url": "https://www.nytimes.com/"
+  },
+  {
+   "rank": 25,
    "outlet_id": "fox_business",
    "name": "Fox Business",
    "type": "cable",
@@ -556,7 +579,7 @@
    "url": "https://www.foxbusiness.com"
   },
   {
-   "rank": 25,
+   "rank": 26,
    "outlet_id": "guardian_us",
    "name": "The Guardian US",
    "type": "print_digital",
@@ -579,7 +602,7 @@
    "url": "https://www.theguardian.com/us"
   },
   {
-   "rank": 26,
+   "rank": 27,
    "outlet_id": "verdict_ted_cruz",
    "name": "Verdict with Ted Cruz",
    "type": "podcast",
@@ -602,7 +625,7 @@
    "url": "https://www.youtube.com/@VerdictwithTedCruz"
   },
   {
-   "rank": 27,
+   "rank": 28,
    "outlet_id": "cnbc",
    "name": "CNBC",
    "type": "cable",
@@ -625,7 +648,7 @@
    "url": "https://www.cnbc.com"
   },
   {
-   "rank": 28,
+   "rank": 29,
    "outlet_id": "ny_post",
    "name": "New York Post",
    "type": "print_digital",
@@ -648,7 +671,7 @@
    "url": "https://nypost.com/"
   },
   {
-   "rank": 29,
+   "rank": 30,
    "outlet_id": "ap",
    "name": "Associated Press",
    "type": "print_digital",
@@ -671,7 +694,7 @@
    "url": "https://apnews.com/"
   },
   {
-   "rank": 30,
+   "rank": 31,
    "outlet_id": "bbc_news",
    "name": "BBC News (US audience)",
    "type": "print_digital",
@@ -694,7 +717,7 @@
    "url": "https://www.bbc.com/news/us-canada"
   },
   {
-   "rank": 31,
+   "rank": 32,
    "outlet_id": "npr",
    "name": "NPR (npr.org)",
    "type": "print_digital",
@@ -717,7 +740,7 @@
    "url": "https://www.npr.org/"
   },
   {
-   "rank": 32,
+   "rank": 33,
    "outlet_id": "forbes",
    "name": "Forbes",
    "type": "print_digital",
@@ -740,7 +763,7 @@
    "url": "https://www.forbes.com/"
   },
   {
-   "rank": 33,
+   "rank": 34,
    "outlet_id": "ezra_klein_show",
    "name": "The Ezra Klein Show",
    "type": "podcast",
@@ -763,7 +786,7 @@
    "url": "https://www.nytimes.com/column/ezra-klein-podcast"
   },
   {
-   "rank": 34,
+   "rank": 35,
    "outlet_id": "huffpost",
    "name": "HuffPost",
    "type": "print_digital",
@@ -786,7 +809,7 @@
    "url": "https://www.huffpost.com/"
   },
   {
-   "rank": 35,
+   "rank": 36,
    "outlet_id": "politico",
    "name": "Politico",
    "type": "print_digital",
@@ -809,7 +832,30 @@
    "url": "https://www.politico.com/"
   },
   {
-   "rank": 36,
+   "rank": 37,
+   "outlet_id": "wapo",
+   "name": "The Washington Post",
+   "type": "print_digital",
+   "R": 0.00021870229007633587,
+   "S": 0.14593749999999997,
+   "D": 0.19166666666666668,
+   "I_mean_item": 6.566536259541984e-06,
+   "best_item_I": 1.7204580152671753e-05,
+   "confidence": "high",
+   "n_items": 8,
+   "n_scored": 8,
+   "r_people": 57300.0,
+   "reach_raw": 45840000.0,
+   "reach_unit": "monthly_visits_semrush",
+   "reach_flag": "ok",
+   "reach_source": "Semrush website overview (US visits)",
+   "reach_source_url": "https://www.semrush.com/website/washingtonpost.com/overview/",
+   "reach_date": "2026-07",
+   "r_basis": "monthly visits / DIGITAL_ITEMS_PER_MONTH (already US-only (Semrush country split)); a visit is not a read",
+   "url": "https://www.washingtonpost.com/"
+  },
+  {
+   "rank": 38,
    "outlet_id": "breitbart",
    "name": "Breitbart",
    "type": "print_digital",
@@ -832,7 +878,7 @@
    "url": "https://www.breitbart.com/"
   },
   {
-   "rank": 37,
+   "rank": 39,
    "outlet_id": "business_insider",
    "name": "Business Insider",
    "type": "print_digital",
@@ -855,7 +901,7 @@
    "url": "https://www.businessinsider.com/"
   },
   {
-   "rank": 38,
+   "rank": 40,
    "outlet_id": "latimes",
    "name": "Los Angeles Times",
    "type": "print_digital",
@@ -878,7 +924,7 @@
    "url": "https://www.latimes.com/"
   },
   {
-   "rank": 39,
+   "rank": 41,
    "outlet_id": "atlantic",
    "name": "The Atlantic",
    "type": "print_digital",
@@ -901,7 +947,53 @@
    "url": "https://www.theatlantic.com/"
   },
   {
-   "rank": 40,
+   "rank": 42,
+   "outlet_id": "the_hill",
+   "name": "The Hill",
+   "type": "print_digital",
+   "R": 0.00011459923664122138,
+   "S": 0.1471875,
+   "D": 0.24166666666666664,
+   "I_mean_item": 4.345221055979645e-06,
+   "best_item_I": 7.701068702290076e-06,
+   "confidence": "high",
+   "n_items": 8,
+   "n_scored": 8,
+   "r_people": 30025.0,
+   "reach_raw": 24020000.0,
+   "reach_unit": "monthly_visits_semrush",
+   "reach_flag": "ok",
+   "reach_source": "Semrush website overview (US visits)",
+   "reach_source_url": "https://www.semrush.com/website/thehill.com/overview/",
+   "reach_date": "2026-07",
+   "r_basis": "monthly visits / DIGITAL_ITEMS_PER_MONTH (already US-only (Semrush country split)); a visit is not a read",
+   "url": "https://thehill.com/"
+  },
+  {
+   "rank": 43,
+   "outlet_id": "newsweek",
+   "name": "Newsweek",
+   "type": "print_digital",
+   "R": 8.821564885496183e-05,
+   "S": 0.10075,
+   "D": 0.48333333333333334,
+   "I_mean_item": 4.195021668256997e-06,
+   "best_item_I": 8.049677958015269e-06,
+   "confidence": "high",
+   "n_items": 8,
+   "n_scored": 8,
+   "r_people": 23112.5,
+   "reach_raw": 18490000.0,
+   "reach_unit": "monthly_visits_semrush",
+   "reach_flag": "scope_global",
+   "reach_source": "Semrush website overview (worldwide visits, no US split published)",
+   "reach_source_url": "https://www.semrush.com/website/newsweek.com/overview/",
+   "reach_date": "2026-06",
+   "r_basis": "monthly visits / DIGITAL_ITEMS_PER_MONTH (UNADJUSTED: worldwide visits, no US split published); a visit is not a read",
+   "url": "https://www.newsweek.com/"
+  },
+  {
+   "rank": 44,
    "outlet_id": "axios",
    "name": "Axios",
    "type": "print_digital",
@@ -924,7 +1016,7 @@
    "url": "https://www.axios.com/"
   },
   {
-   "rank": 41,
+   "rank": 45,
    "outlet_id": "daily_beast",
    "name": "The Daily Beast",
    "type": "print_digital",
@@ -947,7 +1039,30 @@
    "url": "https://www.thedailybeast.com/"
   },
   {
-   "rank": 42,
+   "rank": 46,
+   "outlet_id": "bloomberg",
+   "name": "Bloomberg",
+   "type": "print_digital",
+   "R": 8.597328244274809e-05,
+   "S": 0.1388125,
+   "D": 0.26666666666666666,
+   "I_mean_item": 3.101844386132316e-06,
+   "best_item_I": 4.785846055979643e-06,
+   "confidence": "high",
+   "n_items": 8,
+   "n_scored": 8,
+   "r_people": 22525.0,
+   "reach_raw": 18020000.0,
+   "reach_unit": "monthly_visits_semrush",
+   "reach_flag": "ok",
+   "reach_source": "Semrush website overview (US visits)",
+   "reach_source_url": "https://www.semrush.com/website/bloomberg.com/overview/",
+   "reach_date": "2026-07",
+   "r_basis": "monthly visits / DIGITAL_ITEMS_PER_MONTH (already US-only (Semrush country split)); a visit is not a read",
+   "url": "https://www.bloomberg.com/"
+  },
+  {
+   "rank": 47,
    "outlet_id": "slate",
    "name": "Slate",
    "type": "print_digital",
@@ -970,7 +1085,7 @@
    "url": "https://slate.com/"
   },
   {
-   "rank": 43,
+   "rank": 48,
    "outlet_id": "time",
    "name": "Time",
    "type": "print_digital",
@@ -993,7 +1108,7 @@
    "url": "https://time.com/"
   },
   {
-   "rank": 44,
+   "rank": 49,
    "outlet_id": "stephen_a_smith_show",
    "name": "The Stephen A. Smith Show",
    "type": "podcast",
@@ -1016,7 +1131,7 @@
    "url": "https://stephenasmith.com/"
   },
   {
-   "rank": 45,
+   "rank": 50,
    "outlet_id": "epoch_times",
    "name": "The Epoch Times",
    "type": "print_digital",
@@ -1039,7 +1154,7 @@
    "url": "https://www.theepochtimes.com/"
   },
   {
-   "rank": 46,
+   "rank": 51,
    "outlet_id": "new_yorker",
    "name": "The New Yorker",
    "type": "print_digital",
@@ -1062,7 +1177,7 @@
    "url": "https://www.newyorker.com/"
   },
   {
-   "rank": 47,
+   "rank": 52,
    "outlet_id": "daily_kos",
    "name": "Daily Kos",
    "type": "print_digital",
@@ -1085,7 +1200,7 @@
    "url": "https://www.dailykos.com/"
   },
   {
-   "rank": 48,
+   "rank": 53,
    "outlet_id": "daily_wire",
    "name": "The Daily Wire",
    "type": "print_digital",
@@ -1108,7 +1223,7 @@
    "url": "https://www.dailywire.com/"
   },
   {
-   "rank": 49,
+   "rank": 54,
    "outlet_id": "propublica",
    "name": "ProPublica",
    "type": "print_digital",
@@ -1131,7 +1246,7 @@
    "url": "https://www.propublica.org/"
   },
   {
-   "rank": 50,
+   "rank": 55,
    "outlet_id": "vox",
    "name": "Vox",
    "type": "print_digital",
@@ -1154,7 +1269,7 @@
    "url": "https://www.vox.com/"
   },
   {
-   "rank": 51,
+   "rank": 56,
    "outlet_id": "salon",
    "name": "Salon",
    "type": "print_digital",
@@ -1177,7 +1292,7 @@
    "url": "https://www.salon.com/"
   },
   {
-   "rank": 52,
+   "rank": 57,
    "outlet_id": "washington_examiner",
    "name": "Washington Examiner",
    "type": "print_digital",
@@ -1200,7 +1315,7 @@
    "url": "https://www.washingtonexaminer.com/"
   },
   {
-   "rank": 53,
+   "rank": 58,
    "outlet_id": "theblaze",
    "name": "TheBlaze",
    "type": "print_digital",
@@ -1223,7 +1338,7 @@
    "url": "https://www.theblaze.com/"
   },
   {
-   "rank": 54,
+   "rank": 59,
    "outlet_id": "jacobin",
    "name": "Jacobin",
    "type": "print_digital",
@@ -1246,7 +1361,7 @@
    "url": "https://jacobin.com/"
   },
   {
-   "rank": 55,
+   "rank": 60,
    "outlet_id": "reason",
    "name": "Reason",
    "type": "print_digital",
@@ -1269,7 +1384,30 @@
    "url": "https://reason.com/"
   },
   {
-   "rank": 56,
+   "rank": 61,
+   "outlet_id": "realclearpolitics",
+   "name": "RealClearPolitics",
+   "type": "print_digital",
+   "R": 2.204198473282443e-05,
+   "S": 0.0965,
+   "D": 0.23333333333333334,
+   "I_mean_item": 4.509881917938932e-07,
+   "best_item_I": 7.971851145038169e-07,
+   "confidence": "high",
+   "n_items": 8,
+   "n_scored": 8,
+   "r_people": 5775.0,
+   "reach_raw": 4620000.0,
+   "reach_unit": "monthly_visits_semrush",
+   "reach_flag": "scope_global",
+   "reach_source": "Semrush website overview (worldwide visits, no US split published)",
+   "reach_source_url": "https://www.semrush.com/website/realclearpolitics.com/overview/",
+   "reach_date": "2026-06",
+   "r_basis": "monthly visits / DIGITAL_ITEMS_PER_MONTH (UNADJUSTED: worldwide visits, no US split published); a visit is not a read",
+   "url": "https://www.realclearpolitics.com/"
+  },
+  {
+   "rank": 62,
    "outlet_id": "free_press",
    "name": "The Free Press",
    "type": "print_digital",
@@ -1292,7 +1430,7 @@
    "url": "https://www.thefp.com/"
   },
   {
-   "rank": 57,
+   "rank": 63,
    "outlet_id": "daily_caller",
    "name": "The Daily Caller",
    "type": "print_digital",
@@ -1315,7 +1453,7 @@
    "url": "https://dailycaller.com/"
   },
   {
-   "rank": 58,
+   "rank": 64,
    "outlet_id": "mother_jones",
    "name": "Mother Jones",
    "type": "print_digital",
@@ -1338,7 +1476,7 @@
    "url": "https://www.motherjones.com/"
   },
   {
-   "rank": 59,
+   "rank": 65,
    "outlet_id": "federalist",
    "name": "The Federalist",
    "type": "print_digital",
@@ -1361,7 +1499,7 @@
    "url": "https://thefederalist.com/"
   },
   {
-   "rank": 60,
+   "rank": 66,
    "outlet_id": "the_nation",
    "name": "The Nation",
    "type": "print_digital",
@@ -1384,7 +1522,7 @@
    "url": "https://www.thenation.com/"
   },
   {
-   "rank": 61,
+   "rank": 67,
    "outlet_id": "daily_signal",
    "name": "The Daily Signal",
    "type": "print_digital",
@@ -1500,29 +1638,6 @@
   },
   {
    "rank": null,
-   "outlet_id": "bloomberg",
-   "name": "Bloomberg",
-   "type": "print_digital",
-   "R": 8.597328244274809e-05,
-   "S": null,
-   "D": null,
-   "I_mean_item": null,
-   "best_item_I": null,
-   "confidence": "low",
-   "n_items": 0,
-   "n_scored": 0,
-   "r_people": 22525.0,
-   "reach_raw": 18020000.0,
-   "reach_unit": "monthly_visits_semrush",
-   "reach_flag": "ok",
-   "reach_source": "Semrush website overview (US visits)",
-   "reach_source_url": "https://www.semrush.com/website/bloomberg.com/overview/",
-   "reach_date": "2026-07",
-   "r_basis": "monthly visits / DIGITAL_ITEMS_PER_MONTH (already US-only (Semrush country split)); a visit is not a read",
-   "url": "https://www.bloomberg.com/"
-  },
-  {
-   "rank": null,
    "outlet_id": "bulwark",
    "name": "The Bulwark",
    "type": "print_digital",
@@ -1532,7 +1647,7 @@
    "I_mean_item": null,
    "best_item_I": null,
    "confidence": "low",
-   "n_items": 8,
+   "n_items": 4,
    "n_scored": 0,
    "r_people": null,
    "reach_raw": null,
@@ -1661,52 +1776,6 @@
   },
   {
    "rank": null,
-   "outlet_id": "newsweek",
-   "name": "Newsweek",
-   "type": "print_digital",
-   "R": 8.821564885496183e-05,
-   "S": null,
-   "D": null,
-   "I_mean_item": null,
-   "best_item_I": null,
-   "confidence": "low",
-   "n_items": 0,
-   "n_scored": 0,
-   "r_people": 23112.5,
-   "reach_raw": 18490000.0,
-   "reach_unit": "monthly_visits_semrush",
-   "reach_flag": "scope_global",
-   "reach_source": "Semrush website overview (worldwide visits, no US split published)",
-   "reach_source_url": "https://www.semrush.com/website/newsweek.com/overview/",
-   "reach_date": "2026-06",
-   "r_basis": "monthly visits / DIGITAL_ITEMS_PER_MONTH (UNADJUSTED: worldwide visits, no US split published); a visit is not a read",
-   "url": "https://www.newsweek.com/"
-  },
-  {
-   "rank": null,
-   "outlet_id": "nyt",
-   "name": "The New York Times",
-   "type": "print_digital",
-   "R": 0.0015754770992366413,
-   "S": null,
-   "D": null,
-   "I_mean_item": null,
-   "best_item_I": null,
-   "confidence": "low",
-   "n_items": 0,
-   "n_scored": 0,
-   "r_people": 412775.0,
-   "reach_raw": 330220000.0,
-   "reach_unit": "monthly_visits_semrush",
-   "reach_flag": "ok",
-   "reach_source": "Semrush website overview (US visits)",
-   "reach_source_url": "https://www.semrush.com/website/nytimes.com/overview/",
-   "reach_date": "2026-07",
-   "r_basis": "monthly visits / DIGITAL_ITEMS_PER_MONTH (already US-only (Semrush country split)); a visit is not a read",
-   "url": "https://www.nytimes.com/"
-  },
-  {
-   "rank": null,
    "outlet_id": "puck",
    "name": "Puck",
    "type": "print_digital",
@@ -1727,29 +1796,6 @@
    "reach_date": null,
    "r_basis": "no sourced reach figure",
    "url": "https://puck.news/"
-  },
-  {
-   "rank": null,
-   "outlet_id": "realclearpolitics",
-   "name": "RealClearPolitics",
-   "type": "print_digital",
-   "R": 2.204198473282443e-05,
-   "S": null,
-   "D": null,
-   "I_mean_item": null,
-   "best_item_I": null,
-   "confidence": "low",
-   "n_items": 0,
-   "n_scored": 0,
-   "r_people": 5775.0,
-   "reach_raw": 4620000.0,
-   "reach_unit": "monthly_visits_semrush",
-   "reach_flag": "scope_global",
-   "reach_source": "Semrush website overview (worldwide visits, no US split published)",
-   "reach_source_url": "https://www.semrush.com/website/realclearpolitics.com/overview/",
-   "reach_date": "2026-06",
-   "r_basis": "monthly visits / DIGITAL_ITEMS_PER_MONTH (UNADJUSTED: worldwide visits, no US split published); a visit is not a read",
-   "url": "https://www.realclearpolitics.com/"
   },
   {
    "rank": null,
@@ -1799,29 +1845,6 @@
   },
   {
    "rank": null,
-   "outlet_id": "the_hill",
-   "name": "The Hill",
-   "type": "print_digital",
-   "R": 0.00011459923664122138,
-   "S": null,
-   "D": null,
-   "I_mean_item": null,
-   "best_item_I": null,
-   "confidence": "low",
-   "n_items": 0,
-   "n_scored": 0,
-   "r_people": 30025.0,
-   "reach_raw": 24020000.0,
-   "reach_unit": "monthly_visits_semrush",
-   "reach_flag": "ok",
-   "reach_source": "Semrush website overview (US visits)",
-   "reach_source_url": "https://www.semrush.com/website/thehill.com/overview/",
-   "reach_date": "2026-07",
-   "r_basis": "monthly visits / DIGITAL_ITEMS_PER_MONTH (already US-only (Semrush country split)); a visit is not a read",
-   "url": "https://thehill.com/"
-  },
-  {
-   "rank": null,
    "outlet_id": "usa_today",
    "name": "USA Today",
    "type": "print_digital",
@@ -1842,29 +1865,6 @@
    "reach_date": "2026-07",
    "r_basis": "monthly visits / DIGITAL_ITEMS_PER_MONTH (already US-only (Semrush country split)); a visit is not a read",
    "url": "https://www.usatoday.com/"
-  },
-  {
-   "rank": null,
-   "outlet_id": "wapo",
-   "name": "The Washington Post",
-   "type": "print_digital",
-   "R": 0.00021870229007633587,
-   "S": null,
-   "D": null,
-   "I_mean_item": null,
-   "best_item_I": null,
-   "confidence": "low",
-   "n_items": 0,
-   "n_scored": 0,
-   "r_people": 57300.0,
-   "reach_raw": 45840000.0,
-   "reach_unit": "monthly_visits_semrush",
-   "reach_flag": "ok",
-   "reach_source": "Semrush website overview (US visits)",
-   "reach_source_url": "https://www.semrush.com/website/washingtonpost.com/overview/",
-   "reach_date": "2026-07",
-   "r_basis": "monthly visits / DIGITAL_ITEMS_PER_MONTH (already US-only (Semrush country split)); a visit is not a read",
-   "url": "https://www.washingtonpost.com/"
   },
   {
    "rank": null,

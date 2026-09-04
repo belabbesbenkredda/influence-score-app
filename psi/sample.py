@@ -31,6 +31,12 @@ from psi import db
 
 WINDOW_DAYS = 14
 MIN_WORDS = 300
+# Outlets that block article fetching are sampled from their public RSS summaries instead of
+# being dropped. A headline plus blurb runs 30-40 words, which is enough to place an item's
+# topics but far too little to judge its argument: those items are marked
+# content_basis='summary_only', and their D is not comparable with a full-text score.
+# BB's call (decision D22): keep them in the ranking, flag the limitation everywhere.
+SUMMARY_MIN_WORDS = 28
 MIN_PER_OUTLET = 5
 MAX_PER_OUTLET = 8
 MAX_CANDIDATES = 24
@@ -173,10 +179,12 @@ def rss_candidates(outlet: dict) -> list[dict]:
         for c in e.get("content", []) or []:
             if c.get("value") and words(c["value"]) > words(body):
                 body = c["value"]
-        if not body and e.get("summary") and words(e["summary"]) >= MIN_WORDS:
-            body = e["summary"]
+        summary = e.get("summary") or ""
+        if not body and words(summary) >= MIN_WORDS:
+            body = summary
         out.append({"url": link, "title": e.get("title"), "published": published,
-                    "fulltext": strip_html(body) if body else None, "source": "rss"})
+                    "fulltext": strip_html(body) if body else None,
+                    "summary": strip_html(summary) if summary else None, "source": "rss"})
     return out
 
 
@@ -315,6 +323,7 @@ def gdelt_candidates(outlet: dict) -> list[dict]:
 
 def sample_outlet(outlet: dict, have: int) -> dict:
     oid = outlet["outlet_id"]
+    paywalled = (outlet.get("content_access") or "open") == "paywalled"
     items, log = [], []
     seen_urls = set()
     need = MAX_PER_OUTLET - have
@@ -322,9 +331,10 @@ def sample_outlet(outlet: dict, have: int) -> dict:
     def log_miss(url, reason):
         log.append({"outlet_id": oid, "url": url, "status": "miss", "reason": reason})
 
-    def accept(cand, text, method, title=None, published=None):
+    def accept(cand, text, method, title=None, published=None, basis="full_text"):
         text = clean_text(text)
-        if words(text) < MIN_WORDS:
+        floor = SUMMARY_MIN_WORDS if basis == "summary_only" else MIN_WORDS
+        if words(text) < floor:
             log_miss(cand["url"], f"short_{words(text)}w")
             return False
         if method in ("transcript_page", "homepage_fetch") and looks_like_listing(text):
@@ -334,7 +344,8 @@ def sample_outlet(outlet: dict, have: int) -> dict:
             title = title_from_url(cand["url"]) if not title or len(title.split()) < 3 else title
         items.append({"item_id": item_id(cand["url"]), "outlet_id": oid, "country": db.COUNTRY,
                       "title": title or cand.get("title") or "(untitled)", "url": cand["url"], "published_at": published,
-                      "text": text, "word_count": words(text), "fetch_method": method, "fetched_at": NOW.isoformat()})
+                      "text": text, "word_count": words(text), "fetch_method": method,
+                      "content_basis": basis, "fetched_at": NOW.isoformat()})
         log.append({"outlet_id": oid, "url": cand["url"], "status": "ok", "reason": method})
         return True
 
@@ -372,6 +383,13 @@ def sample_outlet(outlet: dict, have: int) -> dict:
                 continue
             html, status = fetch_html(url)
             if not html:
+                # A paywalled outlet's article pages refuse us; its own RSS summary is what is public.
+                if paywalled and c["source"] == "rss" and c.get("summary"):
+                    title = c.get("title") or ""
+                    body = (title + ". " + c["summary"]) if title else c["summary"]
+                    if accept(c, body, "rss_summary", title=title, published=c.get("published"), basis="summary_only"):
+                        need -= 1
+                        continue
                 log_miss(url, status)
                 continue
             art = extract_article(html, url)
@@ -432,11 +450,13 @@ def run() -> None:
         n_items = con.execute("SELECT COUNT(*) FROM items WHERE country=?", (db.COUNTRY,)).fetchone()[0]
         n_out = con.execute("SELECT COUNT(DISTINCT outlet_id) FROM items WHERE country=?", (db.COUNTRY,)).fetchone()[0]
         by_method = db.rows(con, "SELECT fetch_method, COUNT(*) n FROM items WHERE country=? GROUP BY fetch_method ORDER BY n DESC", (db.COUNTRY,))
+        by_basis = db.rows(con, "SELECT content_basis, COUNT(*) n FROM items WHERE country=? GROUP BY content_basis", (db.COUNTRY,))
         reasons = db.rows(con, "SELECT reason, COUNT(*) n FROM fetch_log WHERE status='miss' GROUP BY reason ORDER BY n DESC LIMIT 12")
         db.set_meta(con, "sample_run", {"at": NOW.isoformat(), "new_items": total_new, "misses": total_miss,
                                         "yt_blocked": _STATE["yt_blocked"], "gdelt_disabled": _STATE["gdelt_disabled"]})
     print(f"  items in DB: {n_items} across {n_out} outlets; this run +{total_new}, misses {total_miss}")
     print("  by method:", {r["fetch_method"]: r["n"] for r in by_method})
+    print("  by content basis:", {r["content_basis"]: r["n"] for r in by_basis})
     print("  top miss reasons:", {r["reason"]: r["n"] for r in reasons})
     if _STATE["yt_blocked"]:
         print("  NOTE: YouTube blocked transcript requests from this IP; TV/podcast items came from transcript pages/articles instead.")

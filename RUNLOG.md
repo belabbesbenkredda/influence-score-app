@@ -300,3 +300,53 @@ build: YouTube per-video views, engagement per URL.
 outlets), D15 (items per outlet), D22 (paywalled papers). The
 one-month evenly-sampled window and audio transcription are also
 still to do.
+
+## 2026-09-04 — v0.4 release
+
+BB's calls this round: design direction taken from a Canada
+reference ("improve on it"), spend ceiling held at $25,
+per-item signals to wait for proper data access rather than
+scraping around blocks.
+
+**Design.** Rebuilt as an index of record: sticky top bar with
+theme toggle, KPI row led by the top item, numbered leaderboard
+with a component breakdown under every rank, L·E·P as a
+three-colour strip. Instrument Sans for interface, Newsreader
+for headlines, JetBrains Mono for every number — all bundled
+(194 KB) so the page still works with no network.
+
+**Influence is now published in PSI points = I × 1000.**
+Because R is a share of US adults, a point is influence per
+thousand adults. Absolute, so editions and countries stay
+comparable instead of each being rescaled to its own leader.
+
+**Paywalled papers are back in** (D22). NYT, WaPo, WSJ, Bloomberg,
+The Hill and RealClearPolitics are sampled from their public RSS
+summaries at a 28-word floor, marked `summary_only`, and shown
+with a warning chip. A headline plus blurb places an item's
+topics but cannot support a discursiveness score comparable
+with full text, and the report says so.
+
+**Two bugs found and fixed while checking the output**
+1. WSJ's public feed is about 19 months stale. My summary path
+   had a `stale_but_summary_kept` bypass that let 2025 items into
+   a 14-day index. Removed: the window wins over coverage.
+   9 out-of-window items deleted.
+2. Median influence displayed as 0.01 at two decimals. The
+   distribution is steeply skewed (median 0.007, leader 2.88),
+   so it now shows three decimals with the quartile range, and
+   the skew is explained rather than hidden.
+
+**Also added**: `language` (2 Spanish-language networks) and
+`content_access` on outlets; `psi/signals.py` with a provider
+interface (YouTube Data API implemented, generic analytics and
+social endpoints ready) and a `signals` stage in `run.py`.
+
+**Counts**: 124 outlets, 108 with sourced reach, 632 items,
+478 ranked, 40 summary-only. Spend $4.51 of the $25 ceiling.
+
+**STILL THE BIGGEST GAP.** No per-item signal provider is
+configured, so every item from an outlet carries that outlet's
+average reach and the top of the leaderboard is seven ABC News
+items at identical R. A YouTube Data API key alone would fix
+this for every channel-based outlet.

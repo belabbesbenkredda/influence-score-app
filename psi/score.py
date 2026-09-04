@@ -88,6 +88,10 @@ def build_system(rubric: str, mip_rows: list[dict]) -> str:
 
 def item_prompt(item: dict) -> tuple[str, bool]:
     text = item["text"] or ""
+    if item.get("content_basis") == "summary_only":
+        text = ("[THIS IS A HEADLINE AND SUMMARY ONLY — the outlet's full article is paywalled. "
+                "Score what is present; a summary carries less argument than an article, and that is a fact "
+                "about our access, not about the outlet.]\n\n") + text
     ws = text.split()
     truncated = False
     if len(ws) > MAX_WORDS:
@@ -180,7 +184,8 @@ def run() -> None:
             r["label"] = labels.get(r["topic"], r["topic"])
         todo = db.rows(con, """SELECT i.* FROM items i
                                LEFT JOIN scores2 s ON s.item_id=i.item_id AND s.prompt_version=?
-                               WHERE i.country=? AND s.item_id IS NULL AND i.word_count>=300
+                               WHERE i.country=? AND s.item_id IS NULL
+                                 AND i.word_count >= (CASE WHEN i.content_basis='summary_only' THEN 28 ELSE 300 END)
                                ORDER BY i.outlet_id, i.published_at""", (PROMPT_VERSION, db.COUNTRY))
         already = con.execute("SELECT COUNT(*), COALESCE(SUM(cost_usd),0) FROM scores2 WHERE prompt_version=?",
                               (PROMPT_VERSION,)).fetchone()

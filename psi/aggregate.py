@@ -24,7 +24,7 @@ import csv
 import json
 from datetime import datetime, timezone
 
-from psi import audience, db
+from psi import audience, db, signals
 
 PRIMARY_VERSION = "score_v2"
 FALLBACK_VERSION = "score_v1"
@@ -80,6 +80,8 @@ def run() -> None:
                 topics_by_item[item_id] = {"_v": FALLBACK_VERSION, sc["topic"]: 1.0}
 
         items = db.rows(con, "SELECT * FROM items WHERE country=?", (db.COUNTRY,))
+        # per-item multiplier on the outlet's average reach; empty until a provider is configured
+        dist = signals.distribution(con, list(outlets))
 
         rows = []
         for it in items:
@@ -89,14 +91,20 @@ def run() -> None:
             shares = {k: v for k, v in (topics_by_item.get(it["item_id"], {}) or {}).items() if k != "_v"}
             s = sum(share * mip.get(t, 0.0) for t, share in shares.items()) if shares else None
             d = (sc["d"] / 30.0) if sc and sc.get("d") is not None else None
-            r = m.get("r")
+            base_r = m.get("r")
+            mult = dist.get(it["item_id"])
+            r = base_r * mult if (base_r is not None and mult is not None) else base_r
             i = r * s * d if (r is not None and s is not None and d is not None) else None
             rows.append({
                 "item_id": it["item_id"], "outlet_id": it["outlet_id"], "outlet": o.get("name"), "type": o.get("type"),
                 "title": it["title"], "url": it["url"], "published_at": it["published_at"], "word_count": it["word_count"],
                 "fetch_method": it["fetch_method"],
                 "R": r, "S": s, "D": d, "I": i,
-                "r_people": m.get("people"), "r_basis": m.get("basis"),
+                "r_people": (m.get("people") * mult) if (m.get("people") is not None and mult is not None) else m.get("people"),
+                "r_basis": (m.get("basis", "") + (f"; x{mult:.2f} from per-item signal" if mult is not None
+                                                  else "; flat across the outlet's items (no per-item signal)")),
+                "signal_mult": mult, "content_basis": it.get("content_basis") or "full_text",
+                "language": o.get("language") or "en", "content_access": o.get("content_access") or "open",
                 "logos": sc.get("logos") if sc else None, "ethos": sc.get("ethos") if sc else None,
                 "pathos": sc.get("pathos") if sc else None, "d_raw": sc.get("d") if sc else None,
                 "prompt_version": sc.get("prompt_version") if sc else None,
@@ -156,9 +164,9 @@ def run() -> None:
                                            "assumptions": {k: v[0] for k, v in audience.ASSUMPTIONS.items()}})
 
     db.OUT.mkdir(parents=True, exist_ok=True)
-    icols = ["rank", "item_id", "outlet", "type", "title", "url", "published_at", "R", "S", "D", "I",
-             "r_people", "logos", "ethos", "pathos", "d_raw", "topics", "prompt_version", "reach_flag",
-             "word_count", "fetch_method", "r_basis", "justification"]
+    icols = ["rank", "item_id", "outlet", "type", "language", "title", "url", "published_at", "R", "S", "D", "I",
+             "r_people", "signal_mult", "logos", "ethos", "pathos", "d_raw", "topics", "prompt_version",
+             "reach_flag", "content_basis", "content_access", "word_count", "fetch_method", "r_basis", "justification"]
     with open(db.OUT / "ranked_items.csv", "w", newline="", encoding="utf-8") as f:
         w = csv.DictWriter(f, fieldnames=icols)
         w.writeheader()
@@ -184,7 +192,11 @@ def run() -> None:
                    "outlets": [{c: row.get(c) for c in ocols} for row in oranked]}, f, indent=1)
 
     n_ranked = sum(1 for r in ranked if r["I"] is not None)
+    n_sig = sum(1 for r in rows if r.get("signal_mult") is not None)
+    n_sum = sum(1 for r in rows if r.get("content_basis") == "summary_only")
     print(f"  {len(rows)} items, {n_ranked} with R, S and D; {sum(1 for r in oranked if r['rank'])} outlets rolled up")
+    print(f"  {n_sig} items carry a per-item reach signal; {len(rows) - n_sig} inherit their outlet's average")
+    print(f"  {n_sum} items are summary-only (paywalled outlets)")
     print("  top items:")
     for row in ranked[:10]:
         if row["I"] is not None:

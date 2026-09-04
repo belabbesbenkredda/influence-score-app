@@ -12,7 +12,8 @@ from psi import db
 
 SEED = db.DATA / "outlets_seed.csv"
 FIELDS = ["outlet_id", "name", "type", "url", "rss_url", "youtube_channel", "youtube_channel_id",
-          "transcript_url", "status", "notes"]
+          "transcript_url", "status", "language", "content_access", "notes"]
+OPTIONAL = {"language": "en", "content_access": "open"}
 TYPES = {"tv", "cable", "print_digital", "radio", "podcast", "newsletter"}
 
 
@@ -21,7 +22,7 @@ def load_seed() -> list[dict]:
         raise SystemExit(f"Missing {SEED}. Stage 1 needs the outlet seed file.")
     with open(SEED, newline="", encoding="utf-8") as f:
         reader = csv.DictReader(f)
-        missing = [c for c in FIELDS if c not in reader.fieldnames]
+        missing = [c for c in FIELDS if c not in reader.fieldnames and c not in OPTIONAL]
         if missing:
             raise SystemExit(f"{SEED} is missing columns: {missing}")
         out = []
@@ -55,13 +56,17 @@ def run() -> None:
         for row in seed:
             rec = {c: (row.get(c) or None) for c in FIELDS}
             rec["status"] = rec["status"] or "active"
+            for c, default in OPTIONAL.items():
+                rec[c] = rec[c] or default
             rec["country"] = db.COUNTRY
             db.upsert(con, "outlets", rec, "outlet_id")
         n = con.execute("SELECT COUNT(*) FROM outlets WHERE country=?", (db.COUNTRY,)).fetchone()[0]
         by_type = db.rows(con, "SELECT type, COUNT(*) AS n, SUM(status='active') AS active FROM outlets WHERE country=? GROUP BY type ORDER BY type", (db.COUNTRY,))
+        extra = db.rows(con, "SELECT language, content_access, COUNT(*) n FROM outlets WHERE country=? GROUP BY 1,2 ORDER BY n DESC", (db.COUNTRY,))
     print(f"  {n} outlets loaded for {db.COUNTRY}")
     for r in by_type:
         print(f"    {r['type']:14s} {r['n']:3d} (active {r['active']})")
+    print("  " + ", ".join(f"{r['language']}/{r['content_access']}: {r['n']}" for r in extra))
 
 
 if __name__ == "__main__":

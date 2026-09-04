@@ -30,6 +30,8 @@ CREATE TABLE IF NOT EXISTS outlets (
     youtube_channel_id TEXT,
     transcript_url TEXT,            -- index page of published transcripts/segments (TV/radio/podcast)
     status         TEXT NOT NULL DEFAULT 'active',  -- active | defunct | uncertain
+    language       TEXT NOT NULL DEFAULT 'en',      -- en | es (the language the outlet publishes in)
+    content_access TEXT NOT NULL DEFAULT 'open',    -- open | paywalled | audio_only
     notes          TEXT
 );
 
@@ -89,6 +91,7 @@ CREATE TABLE IF NOT EXISTS items (
     text         TEXT,
     word_count   INTEGER,
     fetch_method TEXT,               -- rss_fulltext | page_fetch | transcript_page | gdelt | youtube_transcript
+    content_basis TEXT NOT NULL DEFAULT 'full_text',  -- full_text | summary_only
     fetched_at   TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_items_outlet ON items(outlet_id);
@@ -150,6 +153,15 @@ CREATE TABLE IF NOT EXISTS item_topics (
     PRIMARY KEY (item_id, prompt_version, topic)
 );
 CREATE INDEX IF NOT EXISTS idx_item_topics_topic ON item_topics(topic);
+
+CREATE TABLE IF NOT EXISTS item_signals (
+    item_id      TEXT NOT NULL,
+    provider     TEXT NOT NULL,       -- youtube_data_api | analytics | social
+    unit         TEXT,                -- video_views | pageviews | engagements
+    value        REAL,
+    collected_at TEXT,
+    PRIMARY KEY (item_id, provider)
+);
 
 CREATE TABLE IF NOT EXISTS item_scores (
     item_id     TEXT PRIMARY KEY,

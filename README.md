@@ -1,4 +1,4 @@
-# PSI Influence Engine v0.2 — United States
+# PSI Influence Engine v0.4 — United States
 
 A ranked map of the opinion-forming core of the American public sphere,
 built for the Public Sphere Index (PSI, [publicspheres.org](https://publicspheres.org)).
@@ -18,16 +18,20 @@ Every outlet gets an influence score
   Pathos (emotional intensity), each 0–10, scored by Claude from the text
   of recent items. Normalised to 0–1.
 
-This is v0.2: outlet-level reach, item-level salience and discursiveness
-averaged up to the outlet. The seven-determinant health matrix is not
-built yet; `docs/next.md` says how it would attach.
+This is v0.4. **Individual items are the primary object** — influence is
+a property of content, not of a masthead — and outlets appear as a rollup
+of a representative item. Scores are published as PSI points (I × 1,000),
+the expected influence per thousand American adults. The
+seven-determinant health matrix is not built yet; `docs/next.md` says how
+it would attach.
 
 ## What is in the box
 
 | Path | What it is |
 |---|---|
 | `out/report.html` | The report. One self-contained page; open it in any browser, works offline. Also at `docs/index.html` for GitHub Pages. |
-| `out/ranked_outlets.csv` / `.json` | The ranking with R, S, D, I, confidence and reach provenance per outlet. |
+| `out/ranked_items.csv` / `.json` | The primary ranking: every item with R, S, D, I and provenance. |
+| `out/ranked_outlets.csv` / `.json` | The outlet rollup — the influence of one representative item, not a period total. |
 | `out/items_scored.csv` | Every sampled item with topic, L/E/P scores and the model's justification. |
 | `out/handcheck_sample.md` | 20 random scored items to check by hand from a phone. |
 | `out/psi.sqlite` | The database behind all of the above. |
@@ -36,7 +40,9 @@ built yet; `docs/next.md` says how it would attach.
 | `data/reach_sources.md` | How reach is sourced and normalised. `data/reach_table.md` is the auto-generated per-outlet table. |
 | `data/type_weights.csv` | Pew platform shares used to compare across outlet types. |
 | `data/mip_table.csv` / `data/mip_raw_gallup.csv` | Gallup MIP salience, collapsed and raw. |
-| `psi/prompts/score_v1.md` | The scoring rubric given to the model. Versioned. |
+| `psi/prompts/score_v2.md` | The scoring rubric given to the model. Versioned; `score_v1` is kept for comparison. |
+| `psi/audience.py` | Converts each medium's currency into people per item. Every constant here is a stated assumption. |
+| `psi/signals.py` | Per-item reach signals. Off until a provider is configured. |
 | `RUNLOG.md` | What was done, decided and left uncertain, stage by stage. |
 
 ## How to rerun everything
@@ -54,10 +60,11 @@ python run.py all
 1. `outlets` — loads `data/outlets_seed.csv` into the database.
 2. `reach` — loads `data/reach_seed.csv` and `data/type_weights.csv`, applies fact-check verdicts, normalises.
 3. `salience` — fetches the latest Gallup MIP table (falls back to the cached copy in `data/raw/`).
-4. `sample` — pulls up to 8 recent items (last 14 days, 300+ words) per outlet.
-5. `score` — one Claude call per item. Skips items already scored, so reruns only pay for new items.
-6. `aggregate` — computes R, S, D, I, rank and confidence; writes the CSV/JSON exports.
-7. `report` — writes `out/report.html`, `docs/index.html` and `out/handcheck_sample.md`.
+4. `sample` — pulls up to 8 recent items (last 14 days, 300+ words) per outlet. Outlets that block fetching are sampled from their public RSS summaries and marked `summary_only`.
+5. `signals` — collects per-item audience signals from whichever provider is configured (see below). Without one, every item inherits its outlet's average reach.
+6. `score` — one Claude call per item. Skips items already scored, so reruns only pay for new items.
+7. `aggregate` — computes R, S, D and I per item, ranks them, rolls up to outlets; writes the CSV/JSON exports.
+8. `report` — writes `out/report.html`, `docs/index.html` and `out/handcheck_sample.md`.
 
 Run a single stage with `python run.py <stage>`; `python run.py status`
 prints row counts. Useful knobs (environment variables):
@@ -71,6 +78,10 @@ prints row counts. Useful knobs (environment variables):
 | `PSI_MAX_SPEND` | Stop scoring past this many dollars (default 20). |
 | `PSI_DB_PATH` | Use another SQLite file. |
 | `PSI_COUNTRY` | Country code stored on every row, default `US`. |
+| `PSI_PROMPT_VERSION` | Scoring rubric, default `score_v2`. |
+| `PSI_YOUTUBE_API_KEY` | YouTube Data API v3 key. Turns on per-item reach for every channel-based outlet. Free tier is ample. |
+| `PSI_ANALYTICS_URL` / `PSI_ANALYTICS_KEY` | A per-URL pageview endpoint (Chartbeat, Parse.ly, a publisher API) for per-article reach. |
+| `PSI_SOCIAL_URL` / `PSI_SOCIAL_KEY` | A social-listening endpoint returning engagement per URL. |
 
 Scoring cost is roughly one cent per item; a full run of ~500 items is a
 few dollars.
