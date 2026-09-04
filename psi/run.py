@@ -15,7 +15,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-STAGES = ["outlets", "reach", "salience", "sample", "signals", "score", "aggregate", "report"]
+STAGES = ["outlets", "youtube", "reach", "salience", "sample", "signals", "score", "aggregate", "report"]
 
 
 def run_stage(name: str) -> None:

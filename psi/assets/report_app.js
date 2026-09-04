@@ -34,6 +34,7 @@ function basis(o){
 // ---- recompute ------------------------------------------------------------------------
 var rows=[], ranked=[], pcts={};
 function recompute(){
+  CORPUS=null;
   var people={}, r={};
   D.outlets.forEach(function(o,k){ var p=peoplePerItem(o); people[k]=p; r[k]= p==null?null:p/D.usAdults; });
   rows = D.items.map(function(it,idx){
@@ -77,9 +78,37 @@ function chips(x){
 }
 function renderKPIs(){
   var lead=ranked[0], med=ranked.length?pts(pcts.I[Math.floor(pcts.I.length/2)]):null;
-  var mv=movement(), moved=mv?mv.top:0;
+
   $("kpis").innerHTML=
-   '<div class="kpi lead'+(moved?' changed':'')+'"><div class="lab">Leading item</div><b>'+
+   '<div class="kpi lead"><div class="lab">Leading item</div><b>'+
+     (lead?pts(lead.I).toFixed(2):"—")+'</b><div class="sub">'+(lead?esc(D.outlets[lead.o][0]+" · "+lead.title):"")+'</div></div>'+
+   '<div class="kpi"><div class="lab">Items ranked</div><b>'+ranked.length+'</b><div class="sub">of '+rows.length+' scored</div></div>'+
+   '<div class="kpi"><div class="lab">Outlets</div><b>'+D.outlets.length+'</b><div class="sub">'+
+     D.outlets.filter(function(o){return o[4]!=null}).length+' with sourced reach</div></div>'+
+   '<div class="kpi"><div class="lab">Median influence</div><b>'+(med==null?"—":med.toFixed(3))+
+     '</b><div class="sub">PSI points</div></div>'+
+   '<div class="kpi"><div class="lab">Sample window</div><b>14 d</b><div class="sub">'+esc(D.window[0]+" – "+D.window[1])+'</div></div>';
+}
+var pts=function(i){return i==null?null:i*1000};
+
+// ---- rendering ------------------------------------------------------------------------
+function mk(frac,big){
+  frac=Math.max(0,Math.min(1,frac||0));
+  return '<div class="mk'+(big?' big':'')+'"><i style="width:'+(frac*100).toFixed(1)+'%"></i>'+
+         '<u style="left:'+(frac*100).toFixed(1)+'%"></u></div>';
+}
+function chips(x){
+  var o=D.outlets[x.o];
+  var h='<span class="chip">'+esc(o[0])+'</span><span class="chip mono">'+esc(o[1])+'</span>';
+  if(o[2]&&o[2]!=="en") h+='<span class="chip mono">'+esc(o[2].toUpperCase())+'</span>';
+  if(x.summary) h+='<span class="chip warn">summary only</span>';
+  return h;
+}
+function renderKPIs(){
+  var lead=ranked[0], med=ranked.length?pts(pcts.I[Math.floor(pcts.I.length/2)]):null;
+
+  $("kpis").innerHTML=
+   '<div class="kpi lead"><div class="lab">Leading item</div><b>'+
      (lead?pts(lead.I).toFixed(2):"—")+'</b><div class="sub">'+(lead?esc(D.outlets[lead.o][0]+" · "+lead.title):"")+'</div></div>'+
    '<div class="kpi"><div class="lab">Items ranked</div><b>'+ranked.length+'</b><div class="sub">of '+rows.length+' scored</div></div>'+
    '<div class="kpi"><div class="lab">Outlets</div><b>'+D.outlets.length+'</b><div class="sub">'+
@@ -132,6 +161,63 @@ function filtered(){
     return true;
   });
 }
+var CORPUS=null;
+function corpusNorm(){
+  if(CORPUS) return CORPUS;
+  var n=ranked.length||1, l=0,e=0,p=0;
+  ranked.forEach(function(x){l+=x.l||0;e+=x.e||0;p+=x.p||0});
+  CORPUS={l:l/n,e:e/n,p:p/n};
+  return CORPUS;
+}
+function triangle(x){
+  // Aristotle's triad as a shape: each axis runs from the centre to a vertex, scaled 0-10.
+  // The item is filled; the corpus average is the dashed outline behind it, so the point of the
+  // picture is the difference in shape, not the size.
+  var W=210,H=180,cx=W/2,cy=H/2+6,R=64;
+  var ang=[-Math.PI/2, Math.PI/6, 5*Math.PI/6];       // L top, E lower-right, P lower-left
+  function pt(i,v){ return [cx+Math.cos(ang[i])*R*(v/10), cy+Math.sin(ang[i])*R*(v/10)] }
+  function poly(vals){ return vals.map(function(v,i){var q=pt(i,v);return q[0].toFixed(1)+","+q[1].toFixed(1)}).join(" ") }
+  var norm=corpusNorm();
+  var g=[];
+  // axes and rings
+  [0.5,1].forEach(function(f){
+    g.push('<polygon points="'+poly([10*f,10*f,10*f])+'" fill="none" stroke="var(--rule-2)" stroke-width="1" opacity="'+(f===1?0.9:0.5)+'"/>');
+  });
+  ang.forEach(function(a,i){
+    var q=pt(i,10);
+    g.push('<line x1="'+cx+'" y1="'+cy+'" x2="'+q[0].toFixed(1)+'" y2="'+q[1].toFixed(1)+
+           '" stroke="var(--rule-2)" stroke-width="1" opacity="0.5"/>');
+  });
+  g.push('<polygon points="'+poly([norm.l,norm.e,norm.p])+'" fill="none" stroke="var(--mark)" stroke-width="1.5" stroke-dasharray="3 3"/>');
+  g.push('<polygon points="'+poly([x.l,x.e,x.p])+'" fill="var(--mark)" fill-opacity="0.16" stroke="var(--ink)" stroke-width="2" stroke-linejoin="round"/>');
+  var names=[["Logos","logos",x.l],["Ethos","ethos",x.e],["Pathos","pathos",x.p]];
+  names.forEach(function(nm,i){
+    var q=pt(i,10), lx=cx+(q[0]-cx)*1.30, ly=cy+(q[1]-cy)*1.30;
+    g.push('<circle cx="'+q[0].toFixed(1)+'" cy="'+q[1].toFixed(1)+'" r="3.5" fill="var(--'+nm[1]+')"/>');
+    g.push('<text x="'+lx.toFixed(1)+'" y="'+(ly+ (i===0?-4:11)).toFixed(1)+'" text-anchor="middle" class="tl">'+nm[0]+'</text>');
+    g.push('<text x="'+lx.toFixed(1)+'" y="'+(ly+ (i===0?-16:23)).toFixed(1)+'" text-anchor="middle" class="tv">'+nm[2]+'</text>');
+  });
+  return '<svg class="tri" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Logos '+x.l+', Ethos '+x.e+
+         ', Pathos '+x.p+' against the corpus average">'+g.join("")+'</svg>';
+}
+function histogram(x){
+  // where this item falls in the real shape of the distribution, not just its percentile
+  var vals=pcts.I, W=260,H=54,B=26;
+  if(!vals.length) return "";
+  var lo=Math.log10(Math.max(vals[0],1e-6)), hi=Math.log10(vals[vals.length-1]);
+  var span=(hi-lo)||1, bins=new Array(B).fill(0);
+  vals.forEach(function(v){ var b=Math.min(B-1,Math.floor((Math.log10(Math.max(v,1e-6))-lo)/span*B)); bins[b]++ });
+  var mx=Math.max.apply(null,bins)||1, bw=W/B, g=[];
+  var mine=Math.min(B-1,Math.floor((Math.log10(Math.max(x.I,1e-6))-lo)/span*B));
+  bins.forEach(function(c,i){
+    var h=(c/mx)*(H-14);
+    g.push('<rect x="'+(i*bw+0.6).toFixed(1)+'" y="'+(H-12-h).toFixed(1)+'" width="'+(bw-1.2).toFixed(1)+
+           '" height="'+h.toFixed(1)+'" rx="1.5" fill="'+(i===mine?"var(--ink)":"var(--track)")+'"/>');
+  });
+  g.push('<line x1="0" y1="'+(H-11)+'" x2="'+W+'" y2="'+(H-11)+'" stroke="var(--rule-2)" stroke-width="1"/>');
+  g.push('<text x="0" y="'+H+'" class="tl">least</text><text x="'+W+'" y="'+H+'" text-anchor="end" class="tl">most influential</text>');
+  return '<svg class="hist" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Distribution of influence with this item marked">'+g.join("")+'</svg>';
+}
 function detail(x){
   var o=D.outlets[x.o];
   var tk=Object.keys(x.topics).sort(function(a,b){return x.topics[b]-x.topics[a]});
@@ -144,15 +230,24 @@ function detail(x){
     return '<div class="row"><span>'+label+'</span><div class="spine"><u style="left:'+(p*100).toFixed(1)+'%"></u>'+
       '</div><span>'+fmtd+' · '+(p*100).toFixed(0)+'th</span></div>';
   }
+  var norm=corpusNorm();
+  var lead=[["logos",x.l-norm.l,"argument"],["ethos",x.e-norm.e,"authority"],["pathos",x.p-norm.p,"emotion"]]
+    .sort(function(a,b){return b[1]-a[1]})[0];
+  var shape = lead[1]>0.4
+    ? "Leans on <b>"+lead[2]+"</b>, "+lead[1].toFixed(1)+" points above the corpus average."
+    : "No axis stands out — a flat rhetorical profile close to the corpus average.";
   var calc = (x.people!=null? '<b>'+num(x.people)+'</b> people reach one item<br>÷ '+num(D.usAdults)+
       ' US adults = R <b>'+fmt(x.R,5)+'</b><br>':'')+
     'R '+fmt(x.R,5)+' × S '+fmt(x.S,3)+' × D '+fmt(x.D,2)+'<br>= <b>'+pts(x.I).toFixed(3)+' points</b>';
   var src = o[8] ? '<a href="'+esc(o[8])+'" target="_blank" rel="noopener">'+esc(o[7])+'</a>' : esc(o[7]||"unsourced");
-  return '<div class="detail"><div class="dgrid">'+
-    '<div class="dsec"><h4>Where it sits</h4><div class="pct">'+
+  return '<div class="detail"><div class="dgrid3">'+
+    '<div class="dsec fig"><h4>Rhetorical fingerprint</h4>'+triangle(x)+
+      '<p class="figcap">'+shape+' Dashed outline is the average of all '+ranked.length+' ranked items.</p>'+
+      '<h4>Influence, against the field</h4>'+histogram(x)+'</div>'+
+    '<div class="dsec"><h4>Why it scored this way</h4><p class="quote">'+esc(x.just||"not scored")+'</p>'+
+    '<h4>Where it sits</h4><div class="pct">'+
       prow("Reach","R",x.R,fmt(x.R,5))+prow("Salience","S",x.S,fmt(x.S,3))+
-      prow("Discursive","D",x.D,fmt(x.D,2))+prow("Influence","I",x.I,pts(x.I).toFixed(2))+
-    '</div><h4>Why it scored this way</h4><p class="quote">'+esc(x.just||"not scored")+'</p>'+
+      prow("Discursive","D",x.D,fmt(x.D,2))+'</div>'+
     '<h4>Topic split</h4><div class="tsplit">'+split+'</div></div>'+
     '<div class="dsec"><h4>How reach was built</h4><div class="calc">'+calc+'</div>'+
     '<h4>Assumption in play</h4><div class="calc">'+esc(basis(o))+'</div>'+
@@ -167,16 +262,15 @@ function renderBoard(){
   $("shown").textContent=show.length; $("total").textContent=list.length;
   $("board").innerHTML = show.map(function(x){
     var lep=(x.l||0)+(x.e||0)+(x.p||0)||1;
-    var d = state.baseRank && state.baseRank[x.idx]!=null ? state.baseRank[x.idx]-x.rank : 0;
     var pctI=pct("I",x.I);
     return '<div class="lb'+(state.open===x.idx?" open":"")+'" data-i="'+x.idx+'" tabindex="0" role="button" aria-expanded="'+
       (state.open===x.idx)+'">'+
       '<div class="lbhead"><div class="rk">'+String(x.rank).padStart(2,"0")+'</div>'+
       '<div class="lbtitle"><div class="h"><a href="'+esc(x.url)+'" target="_blank" rel="noopener">'+esc(x.title)+'</a></div>'+
       '<div class="lbmeta">'+chips(x)+'</div></div>'+
-      '<div class="pts">'+pts(x.I).toFixed(2)+(d?'<span class="delta">'+(d>0?"▲":"▼")+Math.abs(d)+'</span>':'')+'</div></div>'+
-      '<div class="spine"><u style="left:'+(pctI*100).toFixed(1)+'%"></u>'+
-        '<span>least influential</span><span class="r">most</span></div>'+
+      '<div class="pts">'+pts(x.I).toFixed(2)+'</div></div>'+
+      '<div class="spine" title="Position among all ranked items by influence">'+
+        '<u style="left:'+(pctI*100).toFixed(1)+'%"></u></div>'+
       '<div class="comps">'+
       '<div class="comp"><div class="lab">Reach</div><div class="compval">'+fmt(x.R,5)+'</div>'+mk(pct("R",x.R))+'</div>'+
       '<div class="comp"><div class="lab">Salience</div><div class="compval">'+fmt(x.S,3)+'</div>'+mk(pct("S",x.S))+'</div>'+
@@ -226,54 +320,9 @@ function renderOutlets(){
       '<td class="n"><b>'+pts(r.I).toFixed(2)+'</b></td><td class="n">'+r.n+'</td></tr>';
   }).join("");
 }
-function renderMovement(){
-  var el=$("movement");
-  var changed=Object.keys(A).filter(function(k){return A[k]!==D.defaults[k]});
-  if(!changed.length){ el.className="movement";
-    el.innerHTML="At the default assumptions. Move any control to see which rankings depend on it and which hold."; return }
-  var mv=movement(), lead=ranked[0];
-  var parts=[];
-  parts.push("<b>"+changed.length+"</b> assumption"+(changed.length>1?"s":"")+" changed");
-  parts.push("<b>"+mv.changed+"</b> of "+mv.n+" items moved rank, by <b>"+mv.mean.toFixed(0)+"</b> places on average");
-  if(mv.best && mv.best.d>0)
-    parts.push("biggest riser <b>"+esc(D.outlets[mv.best.x.o][0])+"</b> up <b>"+mv.best.d+"</b>");
-  if(mv.worst && mv.worst.d<0)
-    parts.push("biggest faller <b>"+esc(D.outlets[mv.worst.x.o][0])+"</b> down <b>"+Math.abs(mv.worst.d)+"</b>");
-  el.className="movement live";
-  el.innerHTML=parts.join(" · ")+". "+
-    (mv.top===0
-      ? "The top 25 is <b>unchanged</b> — that head of the ranking does not depend on this assumption, which makes it a finding rather than an artefact."
-      : "<b>"+mv.top+"</b> of the top 25 shifted, so that part of the ranking rests on this assumption. Leader is now <b>"+
-        esc(D.outlets[lead.o][0])+"</b> at <b>"+pts(lead.I).toFixed(2)+"</b> points.");
-}
-function renderAll(){ renderKPIs(); renderStrip(); renderBoard(); renderGaps(); renderOutlets(); renderMovement(); }
+function renderAll(){ renderKPIs(); renderStrip(); renderBoard(); renderGaps(); renderOutlets(); }
 
 // ---- controls -------------------------------------------------------------------------
-var SPEC={
- RADIO_EPISODES_PER_WEEK:{min:1,max:10,step:1,fix:0,label:"Radio episodes per week"},
- PODCAST_EPISODE_VIEW_RATE:{min:0.01,max:0.5,step:0.01,fix:2,label:"Podcast episode view rate"},
- PODCAST_AUDIO_MULTIPLE:{min:0,max:4,step:0.25,fix:2,label:"Podcast audio multiple"},
- NEWSLETTER_OPEN_RATE:{min:0.1,max:0.9,step:0.05,fix:2,label:"Newsletter open rate"},
- DIGITAL_ITEMS_PER_MONTH:{min:50,max:3000,step:50,fix:0,label:"Digital items per month"},
- TV_SEGMENT_SHARE:{min:0.1,max:1,step:0.05,fix:2,label:"TV segment share"}
-};
-function buildSliders(){
-  $("sliders").innerHTML=Object.keys(SPEC).map(function(k){
-    var s=SPEC[k];
-    return '<div class="sl"><div class="top"><label for="s-'+k+'">'+esc(s.label)+'</label>'+
-      '<b id="v-'+k+'">'+A[k].toFixed(s.fix)+'</b></div>'+
-      '<p>'+esc(D.meaning[k]||"")+'</p>'+
-      '<input type="range" id="s-'+k+'" min="'+s.min+'" max="'+s.max+'" step="'+s.step+'" value="'+A[k]+'"></div>';
-  }).join("");
-  Object.keys(SPEC).forEach(function(k){
-    $("s-"+k).addEventListener("input",function(ev){
-      A[k]=parseFloat(ev.target.value);
-      var b=$("v-"+k); b.textContent=A[k].toFixed(SPEC[k].fix);
-      b.className = A[k]!==D.defaults[k] ? "moved" : "";
-      recompute(); renderAll();
-    });
-  });
-}
 function init(){
   $("stamp").textContent=D.generated;
   var types={}, topics={};
@@ -285,18 +334,14 @@ function init(){
   $("tp").innerHTML='<option value="">all topics</option>'+Object.keys(topics).sort(function(a,b){return topics[b]-topics[a]})
     .map(function(t){return '<option value="'+esc(t)+'">'+esc(D.labels[t]||t)+'</option>'}).join("");
   recompute();
-  state.baseRank={}; ranked.forEach(function(x){state.baseRank[x.idx]=x.rank});
-  buildSliders(); renderAll();
+  $("foot-assume").textContent = Object.keys(D.defaults).map(function(k){
+    return k.toLowerCase().replace(/_/g," ")+" "+D.defaults[k] }).join(", ")+".";
+  renderAll();
 
   $("q").addEventListener("input",function(e){state.q=e.target.value; renderBoard(); renderGaps()});
   $("ty").addEventListener("change",function(e){state.type=e.target.value; renderBoard(); renderGaps()});
   $("tp").addEventListener("change",function(e){state.topic=e.target.value; renderBoard(); renderGaps()});
   $("lim").addEventListener("change",function(e){state.limit=+e.target.value; renderBoard()});
-  $("reset").addEventListener("click",function(){
-    A=Object.assign({},D.defaults);
-    Object.keys(SPEC).forEach(function(k){$("s-"+k).value=A[k]; $("v-"+k).textContent=A[k].toFixed(SPEC[k].fix); $("v-"+k).className=""});
-    recompute(); renderAll();
-  });
   $("board").addEventListener("click",function(ev){
     if(ev.target.closest("a")) return;
     var el=ev.target.closest(".lb"); if(!el) return;

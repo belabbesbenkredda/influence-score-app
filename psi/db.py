@@ -154,6 +154,19 @@ CREATE TABLE IF NOT EXISTS item_topics (
 );
 CREATE INDEX IF NOT EXISTS idx_item_topics_topic ON item_topics(topic);
 
+CREATE TABLE IF NOT EXISTS youtube_videos (
+    video_id     TEXT PRIMARY KEY,
+    outlet_id    TEXT NOT NULL,
+    title        TEXT,
+    published_at TEXT,
+    views        REAL,
+    likes        REAL,
+    comments     REAL,
+    duration     TEXT,
+    collected_at TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_ytv_outlet ON youtube_videos(outlet_id);
+
 CREATE TABLE IF NOT EXISTS item_signals (
     item_id      TEXT NOT NULL,
     provider     TEXT NOT NULL,       -- youtube_data_api | analytics | social

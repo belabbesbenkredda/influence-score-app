@@ -10,25 +10,13 @@
 <header><div class="wrap">
   <h1>Influence rankings — United States</h1>
   <p class="lede">The individual items shaping opinion formation, ranked by reach &times; salience &times; discursiveness.
-  Scores are PSI points: influence per thousand US adults. Every constant behind reach is a control below — move one and
-  the index re-ranks, which is the honest way to see how much of this is measurement and how much is assumption.</p>
+  Scores are PSI points: influence per thousand US adults — an absolute figure, not a curve fitted to this week's leader.</p>
   <div class="kpis" id="kpis"></div>
 </div></header>
 
 <main class="wrap">
 
-<section class="card" id="assumptions">
-  <div class="cardhead">
-    <div><h2>The assumptions, as controls</h2>
-    <p class="sub">Each medium reports a different currency — viewers, visits, listeners, subscribers. Turning them into
-    one quantity, people reaching a single item, takes the constants below, and not one of them is measured. Move them
-    and watch what holds. If a ranking survives every plausible setting it is a finding; if it collapses, it was an artefact.</p></div>
-    <button class="ghost" id="reset" type="button">Reset to defaults</button>
-  </div>
-  <div class="body"><div class="sliders" id="sliders"></div>
-    <div class="movement" id="movement"></div>
-  </div>
-</section>
+
 
 <section class="card">
   <div class="cardhead"><div><h2>How influence is distributed</h2>
@@ -84,7 +72,8 @@
       standing with their own audience, never their fairness: the instrument is descriptive, and must register a
       demagogue and a statesman alike.</li>
     <li><b>Points</b> — I &times; 1,000, the expected influence per thousand American adults.</li>
-    <li>Nothing is estimated silently. Unsourced reach stays null; every modelling constant is a control above.</li>
+    <li>Nothing is estimated silently. Unsourced reach stays null, and the constants used to convert each medium's
+      currency into people are listed here: <span id="foot-assume"></span></li>
     <li id="foot-gaps"></li>
   </ol>
 </div></footer>

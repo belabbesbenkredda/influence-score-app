@@ -95,7 +95,7 @@ def us_share(unit: str | None, notes: str | None) -> tuple[float, str]:
         return 1.0, "already US-only (Semrush country split)"
     if unit == "monthly_visits_semrush":
         return 1.0, "UNADJUSTED: worldwide visits, no US split published"
-    if unit in {"youtube_subscribers", "subscribers"}:
+    if unit in {"youtube_subscribers", "subscribers", "median_episode_views_youtube"}:
         return 1.0, "UNADJUSTED: no public country split for this platform"
     return 1.0, "UNADJUSTED: unknown unit"
 
@@ -116,6 +116,11 @@ def people_per_item(outlet_type: str, unit: str | None, raw: float | None, notes
     if unit == "weekly_listeners":
         return base / RADIO_EPISODES_PER_WEEK, (
             f"weekly cume / RADIO_EPISODES_PER_WEEK ({share_note}); cume overlap not modelled")
+    if unit == "median_episode_views_youtube":
+        # measured, not modelled: the median episode's actual audience. The audio multiple still
+        # applies because podcast listening on audio feeds never appears in YouTube's counts.
+        return base * (1 + PODCAST_AUDIO_MULTIPLE), (
+            f"measured median episode views x (1 + PODCAST_AUDIO_MULTIPLE) ({share_note})")
     if unit == "youtube_subscribers":
         return base * PODCAST_EPISODE_VIEW_RATE * (1 + PODCAST_AUDIO_MULTIPLE), (
             f"subscribers x PODCAST_EPISODE_VIEW_RATE x (1 + PODCAST_AUDIO_MULTIPLE) ({share_note})")

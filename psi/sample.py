@@ -8,7 +8,10 @@ Per active outlet, pull 5-8 items from the last 14 days with full text
   3. transcript_page   links harvested from the outlet's transcript/episode index page
   4. youtube_transcript YouTube auto-captions via youtube-transcript-api (skipped for
                        the rest of the run once YouTube blocks the IP)
-  5. gdelt             GDELT DOC 2.0 article discovery for the outlet's domain, then page_fetch
+  5. gdelt             GDELT DOC 2.0 article discovery, then page_fetch. Kept as a last resort,
+                       but it has never returned anything from this runner: 41 attempts across the
+                       v0.2-v0.5 runs produced 0 items, all 429s, connection resets or timeouts.
+                       It is worth retrying from a different network; do not count on it here.
 
 Every miss is logged in fetch_log with a reason. Resume-safe: outlets that
 already have >= MAX_PER_OUTLET items are skipped.
@@ -286,6 +289,7 @@ def fetch_youtube_transcript(video_id: str) -> tuple[str | None, str]:
 
 
 def gdelt_candidates(outlet: dict) -> list[dict]:
+    """Last resort. Zero items to date — see the module docstring."""
     if _STATE["gdelt_disabled"] or not outlet.get("url"):
         return []
     domain = urlparse(outlet["url"]).netloc.removeprefix("www.")

@@ -441,3 +441,51 @@ mirrored in JS so recomputation is instant. Assets live in
 psi/assets/report_app.{html,css,js}; psi/tools/payload.py builds
 the data; report.py just assembles. Still one self-contained
 file, still works with no network.
+
+## 2026-09-04 — v0.5.1: dials out, fingerprint in, YouTube path built
+
+**Assumption dials removed.** BB could not see what they were
+for. The constants are still disclosed — they are listed in the
+method footer — but they are no longer controls.
+
+**The expand is now worth opening.** Two figures replace the four
+plain percentile lines:
+- A *rhetorical fingerprint*: Aristotle's triad drawn as a shape,
+  each axis running from the centre to a vertex scaled 0-10. The
+  item is the filled polygon, the corpus average the dashed
+  outline behind it, so the picture is about difference in shape
+  rather than size. A caption names the leaning: "Leans on
+  emotion, 2.8 points above the corpus average."
+- A small histogram of the whole influence distribution with the
+  item's bin picked out, so you see where it falls in the real
+  shape rather than reading a percentile.
+Reach percentiles, reasoning, topic split, arithmetic and
+provenance remain alongside.
+
+**Fixed**: the row spine's end labels collided with the marker
+when an item sat at either extreme. Labels removed; the spine
+carries a title attribute instead.
+
+**YouTube Data API path built** (`psi/youtube.py`, stage
+`run.py youtube`). With a key it walks each channel's uploads
+playlist, keeps videos inside the window, reads view counts, and
+replaces the outlet's modelled reach with the *median episode
+audience* — median so one viral episode cannot redefine a show.
+Every video is stored, so per-episode signals follow.
+This answers BB's D10 directly: the unit becomes the audience of
+an episode rather than the size of a following, and the
+PODCAST_EPISODE_VIEW_RATE guess disappears for any outlet it
+covers. 111 outlets have a channel id and are waiting on a key.
+Quota cost is trivial: playlistItems and videos are 1 unit per 50
+records, against 10,000 free a day. search.list, at 100 units a
+call, is deliberately not used.
+What it does not give us: captions. Transcript download needs
+OAuth as the channel owner, so discursiveness for these outlets
+still depends on published transcripts or our own transcription.
+It fixes R, not D.
+
+**GDELT, asked about directly: we are not using it.** It is coded
+as the last fallback in sample.py and has produced zero items in
+41 attempts across every run — 12 HTTP 429s, 21 connection
+resets, 8 timeouts. The docstring now says so rather than leaving
+a path that looks live. Worth retrying from a different network.
