@@ -1,0 +1,50 @@
+category,share_label,share,topic,source_url,survey_date
+High cost of living/Inflation,16,0.16,inflation_cost_of_living,https://news.gallup.com/poll/1675/most-important-problem.aspx,2026-08
+Economy in general,14,0.14,economy,https://news.gallup.com/poll/1675/most-important-problem.aspx,2026-08
+Fuel/Oil prices,3,0.03,inflation_cost_of_living,https://news.gallup.com/poll/1675/most-important-problem.aspx,2026-08
+Federal budget deficit/Federal debt,3,0.03,economy,https://news.gallup.com/poll/1675/most-important-problem.aspx,2026-08
+Unemployment/Jobs,2,0.02,economy,https://news.gallup.com/poll/1675/most-important-problem.aspx,2026-08
+Wage issues,1,0.01,economy,https://news.gallup.com/poll/1675/most-important-problem.aspx,2026-08
+Taxes,1,0.01,economy,https://news.gallup.com/poll/1675/most-important-problem.aspx,2026-08
+Gap between rich and poor,1,0.01,economy,https://news.gallup.com/poll/1675/most-important-problem.aspx,2026-08
+Lack of money,1,0.01,economy,https://news.gallup.com/poll/1675/most-important-problem.aspx,2026-08
+Foreign Trade/Trade deficit,*,,economy,https://news.gallup.com/poll/1675/most-important-problem.aspx,2026-08
+Corporate corruption,*,,economy,https://news.gallup.com/poll/1675/most-important-problem.aspx,2026-08
+The government/Poor leadership,25,0.25,government_leadership,https://news.gallup.com/poll/1675/most-important-problem.aspx,2026-08
+Immigration,10,0.1,immigration,https://news.gallup.com/poll/1675/most-important-problem.aspx,2026-08
+War in the Middle East,5,0.05,foreign_policy_wars,https://news.gallup.com/poll/1675/most-important-problem.aspx,2026-08
+Healthcare,4,0.04,healthcare,https://news.gallup.com/poll/1675/most-important-problem.aspx,2026-08
+Race relations/Racism,4,0.04,race_relations,https://news.gallup.com/poll/1675/most-important-problem.aspx,2026-08
+Poverty/Hunger/Homelessness,3,0.03,poverty_homelessness,https://news.gallup.com/poll/1675/most-important-problem.aspx,2026-08
+Elections/Election reform/Democracy,3,0.03,democracy_elections,https://news.gallup.com/poll/1675/most-important-problem.aspx,2026-08
+Foreign policy/Foreign aid/Focus overseas,3,0.03,foreign_policy_wars,https://news.gallup.com/poll/1675/most-important-problem.aspx,2026-08
+Unifying the country,3,0.03,unifying_the_country,https://news.gallup.com/poll/1675/most-important-problem.aspx,2026-08
+Judicial system/Courts/Laws,3,0.03,democracy_elections,https://news.gallup.com/poll/1675/most-important-problem.aspx,2026-08
+Lack of respect for each other,3,0.03,unifying_the_country,https://news.gallup.com/poll/1675/most-important-problem.aspx,2026-08
+Ethics/moral/religious/family decline,3,0.03,ethics_morality,https://news.gallup.com/poll/1675/most-important-problem.aspx,2026-08
+Education,3,0.03,education,https://news.gallup.com/poll/1675/most-important-problem.aspx,2026-08
+Wars/War (nonspecific)/Fear of war,3,0.03,foreign_policy_wars,https://news.gallup.com/poll/1675/most-important-problem.aspx,2026-08
+Environment/Pollution/Climate change,1,0.01,environment,https://news.gallup.com/poll/1675/most-important-problem.aspx,2026-08
+Crime/Violence,1,0.01,crime,https://news.gallup.com/poll/1675/most-important-problem.aspx,2026-08
+Abortion,1,0.01,abortion,https://news.gallup.com/poll/1675/most-important-problem.aspx,2026-08
+Welfare,1,0.01,poverty_homelessness,https://news.gallup.com/poll/1675/most-important-problem.aspx,2026-08
+Advancement of computers/technology,1,0.01,ai_technology,https://news.gallup.com/poll/1675/most-important-problem.aspx,2026-08
+The media,1,0.01,other,https://news.gallup.com/poll/1675/most-important-problem.aspx,2026-08
+National security,1,0.01,foreign_policy_wars,https://news.gallup.com/poll/1675/most-important-problem.aspx,2026-08
+LGBTQ rights,1,0.01,other,https://news.gallup.com/poll/1675/most-important-problem.aspx,2026-08
+"International issues, problems",*,,foreign_policy_wars,https://news.gallup.com/poll/1675/most-important-problem.aspx,2026-08
+Care for the elderly/Medicare,*,,healthcare,https://news.gallup.com/poll/1675/most-important-problem.aspx,2026-08
+Cancer/diseases/viruses,*,,healthcare,https://news.gallup.com/poll/1675/most-important-problem.aspx,2026-08
+Guns/Gun control,*,,guns,https://news.gallup.com/poll/1675/most-important-problem.aspx,2026-08
+Drugs,*,,crime,https://news.gallup.com/poll/1675/most-important-problem.aspx,2026-08
+Lack of military defense,*,,foreign_policy_wars,https://news.gallup.com/poll/1675/most-important-problem.aspx,2026-08
+Social Security,*,,economy,https://news.gallup.com/poll/1675/most-important-problem.aspx,2026-08
+Children’s needs,*,,other,https://news.gallup.com/poll/1675/most-important-problem.aspx,2026-08
+Terrorism,*,,foreign_policy_wars,https://news.gallup.com/poll/1675/most-important-problem.aspx,2026-08
+Situation with China,*,,foreign_policy_wars,https://news.gallup.com/poll/1675/most-important-problem.aspx,2026-08
+Situation with Russia,*,,foreign_policy_wars,https://news.gallup.com/poll/1675/most-important-problem.aspx,2026-08
+Energy/Lack of energy sources,*,,inflation_cost_of_living,https://news.gallup.com/poll/1675/most-important-problem.aspx,2026-08
+Infrastructure,--,,other,https://news.gallup.com/poll/1675/most-important-problem.aspx,2026-08
+School shootings,--,,guns,https://news.gallup.com/poll/1675/most-important-problem.aspx,2026-08
+Police brutality,--,,crime,https://news.gallup.com/poll/1675/most-important-problem.aspx,2026-08
+Other non-economic,5,0.05,other,https://news.gallup.com/poll/1675/most-important-problem.aspx,2026-08

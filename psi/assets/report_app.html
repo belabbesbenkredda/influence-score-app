@@ -1,0 +1,79 @@
+<div class="topbar"><div class="wrap">
+  <div class="brand">Public Sphere Index <span>/ Influence</span></div>
+  <span class="chip">United States</span>
+  <span class="chip mono">I = R &times; S &times; D</span>
+  <div class="spacer"></div>
+  <span class="chip mono" id="stamp"></span>
+  <button class="ghost" id="theme" type="button">Theme</button>
+</div></div>
+
+<header><div class="wrap">
+  <h1>Influence rankings — United States</h1>
+  <p class="lede">The individual items shaping opinion formation, ranked by reach &times; salience &times; discursiveness.
+  Scores are PSI points: influence per thousand US adults — an absolute figure, not a curve fitted to this week's leader.</p>
+  <div class="kpis" id="kpis"></div>
+</div></header>
+
+<main class="wrap">
+
+
+
+<section class="card">
+  <div class="cardhead"><div><h2>How influence is distributed</h2>
+  <p class="sub" id="stripsub"></p></div></div>
+  <div class="body">
+    <svg class="strip" id="strip" viewBox="0 0 1000 108" preserveAspectRatio="none" role="img"
+         aria-label="Every ranked item plotted by influence on a logarithmic scale"></svg>
+    <div class="mono readout" id="striplabel">Hover a mark to identify it.</div>
+  </div>
+</section>
+
+<section class="card">
+  <div class="cardhead"><div><h2>Index leaderboard</h2>
+  <p class="sub">Click an entry to see where it sits in each distribution, why it scored as it did, and how its reach was built.</p></div></div>
+  <div class="controls">
+    <span class="lab">Search</span><input id="q" type="search" placeholder="outlet or headline">
+    <span class="lab">Type</span><select id="ty"><option value="">all media</option></select>
+    <span class="lab">Topic</span><select id="tp"><option value="">all topics</option></select>
+    <span class="lab">Show</span><select id="lim"><option value="25">top 25</option><option value="50">top 50</option>
+      <option value="100">top 100</option><option value="0">everything</option></select>
+    <span class="lab count"><b id="shown">0</b> of <b id="total">0</b> items</span>
+  </div>
+  <div class="body" id="board"></div>
+</section>
+
+<section class="card">
+  <div class="cardhead"><div><h2>What the public cares about, against what it got</h2>
+  <p class="sub">Filled marks are the share of Americans naming a topic as the country's most important problem (Gallup).
+  Hollow marks are the share of the corpus devoted to it, counted proportionally. The line between them is the gap —
+  the distance between public concern and public discourse, which is the whole point of measuring salience separately.</p></div></div>
+  <div class="body"><div class="legend">
+    <span><i class="dot solid"></i>Public concern</span><span><i class="dot hollow"></i>Coverage</span></div>
+    <div id="gaps"></div></div>
+</section>
+
+<section class="card">
+  <div class="cardhead"><div><h2>Outlets</h2>
+  <p class="sub">The influence of one representative item, not a period total: sampling is capped per outlet, so a total
+  would rank outlets by how many of their items we could fetch. An outlet dominating the leaderboard is a finding, not a fault.</p></div></div>
+  <div class="body"><div class="scroll"><table id="outlets"><thead><tr>
+    <th class="n">#</th><th>Outlet</th><th class="n">R</th><th class="n">S</th><th class="n">D</th>
+    <th class="n">Points</th><th class="n">Items</th></tr></thead><tbody></tbody></table></div></div>
+</section>
+</main>
+
+<footer><div class="wrap">
+  <h2>Method</h2>
+  <ol>
+    <li><b>R</b> — a sourced third-party audience figure, converted to people reaching one item and divided by US adults.
+      Absolute: no normalisation against a category leader, no platform weights.</li>
+    <li><b>S</b> — Gallup's Most Important Problem, applied proportionally across every topic an item addresses.</li>
+    <li><b>D</b> — Logos, Ethos and Pathos, each 0–10, rubric <span class="mono">score_v2</span>. Ethos is the speaker's
+      standing with their own audience, never their fairness: the instrument is descriptive, and must register a
+      demagogue and a statesman alike.</li>
+    <li><b>Points</b> — I &times; 1,000, the expected influence per thousand American adults.</li>
+    <li>Nothing is estimated silently. Unsourced reach stays null, and the constants used to convert each medium's
+      currency into people are listed here: <span id="foot-assume"></span></li>
+    <li id="foot-gaps"></li>
+  </ol>
+</div></footer>
