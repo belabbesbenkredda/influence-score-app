@@ -42,12 +42,12 @@ CSS = """
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
  --ground:#0E1113;--surface:#161A1D;--sunken:#1C2124;--ink:#EAEEF0;--ink-2:#C3CBD0;--muted:#8B959B;
  --rule:#252B2F;--rule-2:#333A3F;--bar:#E4EAED;--bar-track:#262C31;
- --logos:#6BA6E8;--ethos:#4FC2A0;--pathos:#E8996A;--accent:#E4EAED;--focus:#6BA6E8;
+ --logos:#5490D2;--ethos:#36A886;--pathos:#D07C50;--accent:#E4EAED;--focus:#6BA6E8;
  --chip:#20262A;--chip-ink:#A9B3B8;--warnbg:#2A2317;--warn:#D7AC55;}}
 :root[data-theme="dark"]{
  --ground:#0E1113;--surface:#161A1D;--sunken:#1C2124;--ink:#EAEEF0;--ink-2:#C3CBD0;--muted:#8B959B;
  --rule:#252B2F;--rule-2:#333A3F;--bar:#E4EAED;--bar-track:#262C31;
- --logos:#6BA6E8;--ethos:#4FC2A0;--pathos:#E8996A;--accent:#E4EAED;--focus:#6BA6E8;
+ --logos:#5490D2;--ethos:#36A886;--pathos:#D07C50;--accent:#E4EAED;--focus:#6BA6E8;
  --chip:#20262A;--chip-ink:#A9B3B8;--warnbg:#2A2317;--warn:#D7AC55;}
 *{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%}
@@ -105,8 +105,8 @@ h1{font-size:2.15rem;font-weight:600}
 .comp .lab{font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:500}
 .compval{font-size:.85rem;margin:1px 0 4px}
 .comp .track{height:5px;margin:0}
-.lep{display:flex;height:5px;border-radius:3px;overflow:hidden;background:var(--bar-track)}
-.lep i{display:block;height:100%}
+.lep{display:flex;height:5px;gap:2px}
+.lep i{display:block;height:100%;border-radius:2px;min-width:2px}
 .lep .l{background:var(--logos)}.lep .e{background:var(--ethos)}.lep .p{background:var(--pathos)}
 /* tables */
 .scroll{overflow-x:auto}
@@ -139,6 +139,40 @@ tbody tr:hover td{background:var(--sunken)}
 .arow b{font-family:"JetBrains Mono",monospace;font-weight:500}
 .arow span{color:var(--muted)}
 .note{background:var(--warnbg);color:var(--warn);border-radius:10px;padding:11px 14px;font-size:.85rem;margin:0 20px 16px}
+/* expandable rows */
+.lb{cursor:pointer;position:relative;transition:background .12s}
+.lb:hover{background:var(--sunken)}
+.lb .caret{position:absolute;right:0;top:18px;color:var(--muted);font-size:.7rem;transition:transform .15s}
+.lb[aria-expanded="true"] .caret{transform:rotate(90deg)}
+.lb[aria-expanded="true"]{background:var(--sunken)}
+.detail{display:none;padding:14px 0 4px;border-top:1px dashed var(--rule-2);margin-top:12px}
+.lb[aria-expanded="true"] .detail,tr.open+tr.det .detail{display:block}
+.det>td{background:var(--sunken)}
+.dgrid{display:grid;grid-template-columns:1.4fr 1fr;gap:18px}
+.dsec h4{font-size:.6rem;letter-spacing:.11em;text-transform:uppercase;color:var(--muted);margin:0 0 6px;font-weight:500}
+.quote{font-family:Newsreader,Georgia,serif;font-size:.95rem;line-height:1.5;color:var(--ink-2);margin:0}
+.tsplit{display:flex;flex-direction:column;gap:5px}
+.tsplit div{display:grid;grid-template-columns:minmax(90px,auto) 1fr 2.6rem;gap:8px;align-items:center;font-size:.78rem}
+.tsplit .track{height:5px;margin:0}
+.tsplit b{font-family:"JetBrains Mono",monospace;font-weight:500;text-align:right;font-size:.72rem}
+.calc{font-family:"JetBrains Mono",monospace;font-size:.72rem;color:var(--muted);line-height:1.7}
+.calc b{color:var(--ink);font-weight:500}
+.prov{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
+.prov a{font-size:.72rem}
+/* hover explainers */
+.hint{position:relative;border-bottom:1px dotted var(--rule-2);cursor:help}
+.hint>.tip{position:absolute;left:0;bottom:calc(100% + 8px);width:250px;background:var(--ink);color:var(--ground);
+ padding:9px 11px;border-radius:8px;font-family:"Instrument Sans",sans-serif;font-size:.74rem;line-height:1.45;
+ opacity:0;visibility:hidden;transition:opacity .12s;z-index:30;pointer-events:none;box-shadow:0 6px 24px rgba(0,0,0,.18)}
+.hint:hover>.tip,.hint:focus-visible>.tip{opacity:1;visibility:visible}
+.hint>.tip em{font-style:normal;font-family:"JetBrains Mono",monospace;display:block;margin-top:5px;opacity:.75}
+/* distribution strip */
+.strip{width:100%;height:110px;display:block}
+.strip circle{fill:var(--bar);fill-opacity:.32;transition:fill-opacity .1s}
+.strip circle:hover{fill-opacity:1}
+.strip circle.hi{fill:var(--pathos);fill-opacity:1}
+.strip .ax{stroke:var(--rule-2);stroke-width:1}
+.strip text{fill:var(--muted);font-family:"JetBrains Mono",monospace;font-size:9px}
 footer{border-top:1px solid var(--rule);background:var(--surface);margin-top:30px}
 footer .wrap{padding:22px 22px 40px;color:var(--muted);font-size:.86rem}
 footer h2{font-size:.95rem;color:var(--ink);margin-bottom:8px}
@@ -193,9 +227,30 @@ JS = """
      return asc?x.localeCompare(y):y.localeCompare(x)});
    rows.forEach(function(r){tb.appendChild(r)});
    ths.forEach(function(o){o.classList.remove('sorted')});th.classList.add('sorted');th.dataset.asc=asc?'0':'1';})});
+ // expand a leaderboard entry
+ document.querySelectorAll('.lb').forEach(function(el){
+   function toggle(){var o=el.getAttribute('aria-expanded')==='true';el.setAttribute('aria-expanded',String(!o))}
+   el.addEventListener('click',function(ev){if(!ev.target.closest('a'))toggle()});
+   el.addEventListener('keydown',function(ev){
+     if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();toggle()}});
+ });
+ // expand a table row
+ t.tBodies[0].addEventListener('click',function(ev){
+   var tr=ev.target.closest('tr');if(!tr||tr.classList.contains('det')||ev.target.closest('a'))return;
+   var det=tr.nextElementSibling;
+   if(det&&det.classList.contains('det')){tr.classList.toggle('open');det.style.display=tr.classList.contains('open')?'':'none'}
+ });
+ // distribution strip: highlight the hovered mark's row
+ var strip=document.getElementById('strip');
+ if(strip){var lbl=document.getElementById('striplabel');
+  strip.addEventListener('mouseover',function(ev){
+    var c=ev.target.closest('circle');if(!c)return;
+    lbl.textContent=c.dataset.t+' — '+c.dataset.p+' points';});
+  strip.addEventListener('mouseleave',function(){lbl.textContent='Hover a mark to identify it.'});}
  var q=document.getElementById('q'),ty=document.getElementById('ty'),tp=document.getElementById('tp'),sh=document.getElementById('shown');
  function f(){var n=(q.value||'').toLowerCase(),a=ty.value,b=tp.value,k=0;
   [].forEach.call(t.tBodies[0].rows,function(r){
+    if(r.classList.contains('det')){r.style.display=r.previousElementSibling.classList.contains('open')&&r.previousElementSibling.style.display!=='none'?'':'none';return}
     var ok=(!n||r.dataset.s.indexOf(n)>=0)&&(!a||r.dataset.type===a)&&(!b||r.dataset.topics.indexOf(b)>=0);
     r.style.display=ok?'':'none';if(ok)k++});
   sh.textContent=k}
@@ -231,8 +286,10 @@ def run() -> None:
     with db.db() as con:
         items = db.rows(con, """
             SELECT s.*, i.title, i.url, i.published_at, i.word_count, i.fetch_method, i.content_basis,
-                   o.name AS outlet, o.type, o.language, o.content_access
+                   o.name AS outlet, o.type, o.language, o.content_access,
+                   r.reach_raw, r.reach_unit, r.reach_source, r.reach_source_url, r.reach_date, r.flag AS reach_flag
             FROM item_scores s JOIN items i USING(item_id) JOIN outlets o USING(outlet_id)
+            LEFT JOIN reach r USING(outlet_id)
             WHERE s.country=? ORDER BY (s.i IS NULL), s.i DESC""", (db.COUNTRY,))
         sc = {r["item_id"]: r for r in db.rows(con, "SELECT * FROM scores2 WHERE prompt_version='score_v2'")}
         for r in db.rows(con, "SELECT * FROM scores"):
@@ -278,6 +335,42 @@ def run() -> None:
             mass[t] += share
     total_mass = sum(mass.values()) or 1
 
+    def hint(value, title, body, calc=""):
+        return ('<span class="hint" tabindex="0">%s<span class="tip"><b>%s</b> %s%s</span></span>'
+                % (value, esc(title), esc(body), ("<em>%s</em>" % esc(calc)) if calc else ""))
+
+    def detail(x):
+        """What sits behind one row: the model's reasoning, the topic split, and how R was built."""
+        s_ = sc.get(x["item_id"], {})
+        tl = sorted(tops.get(x["item_id"], []), key=lambda kv: -kv[1])
+        top = max([v for _, v in tl] or [1])
+        bars = "".join('<div><span>%s</span><div class="track"><i style="width:%.0f%%"></i></div><b>%.0f%%</b></div>'
+                       % (esc(labels.get(t, t)), 100 * v / top, 100 * v) for t, v in tl)
+        people = x["r_people"]
+        calc = []
+        if people is not None:
+            calc.append("<b>%s</b> people reach one item" % f"{people:,.0f}")
+            calc.append("&divide; %s US adults = R <b>%s</b>" % (f"{audience.US_ADULTS:,}", f(x["r"], 5)))
+        calc.append("R %s &times; S %s &times; D %s" % (f(x["r"], 5), f(x["s"], 3), f(x["d"], 2)))
+        calc.append("= I %s &rarr; <b>%s points</b>" % (f(x["i"], 8), ("%.2f" % pts(x["i"])) if x["i"] is not None else "—"))
+        src = ('<a href="%s" target="_blank" rel="noopener">%s</a>' % (esc(x["reach_source_url"]), esc(x["reach_source"]))
+               if x["reach_source_url"] else esc(x["reach_source"] or "unsourced"))
+        return ('<div class="detail"><div class="dgrid">'
+                '<div class="dsec"><h4>Why it scored this way</h4><p class="quote">%s</p>'
+                '<h4 style="margin-top:14px">Topic split</h4><div class="tsplit">%s</div></div>'
+                '<div class="dsec"><h4>How reach was built</h4><div class="calc">%s</div>'
+                '<h4 style="margin-top:14px">Provenance</h4>'
+                '<div class="calc">%s &middot; %s%s</div>'
+                '<div class="prov"><span class="chip mono">%s</span><span class="chip mono">%d words</span>'
+                '<span class="chip mono">%s</span>%s'
+                '<a class="chip" href="%s" target="_blank" rel="noopener">open item &rarr;</a></div>'
+                '</div></div></div>'
+                % (esc(s_.get("justification") or "not scored"), bars, "<br>".join(calc),
+                   src, esc(x["reach_unit"] or ""), (" &middot; " + esc(x["reach_date"])) if x["reach_date"] else "",
+                   esc(x["fetch_method"] or ""), x["word_count"] or 0, esc(x["reach_flag"] or "unsourced"),
+                   '<span class="chip warn">summary only</span>' if x["content_basis"] == "summary_only" else "",
+                   esc(x["url"])))
+
     def chips(x):
         out = ['<span class="chip">%s</span>' % esc(x["outlet"]),
                '<span class="chip mono">%s</span>' % esc(x["type"])]
@@ -287,6 +380,45 @@ def run() -> None:
             out.append('<span class="chip warn">summary only</span>')
         return "".join(out)
 
+    # ---- distribution strip: every ranked item on a log influence scale.
+    # One hue, one series, no legend: the job is showing spread, not identity.
+    def strip_svg(rows):
+        if not rows:
+            return "", ""
+        import math
+        W, H, PAD_L, PAD_R, PAD_B = 1000, 96, 8, 8, 22
+        vals = [pts(x["i"]) for x in rows]
+        lo, hi = max(min(vals), 1e-5), max(vals)
+        lgl, lgh = math.log10(lo), math.log10(hi)
+        span = (lgh - lgl) or 1
+        plot_w = W - PAD_L - PAD_R
+        marks = []
+        for k, x in enumerate(rows):
+            v = pts(x["i"])
+            cx = PAD_L + plot_w * (math.log10(max(v, lo)) - lgl) / span
+            cy = 10 + ((k * 37) % 47) * (H - PAD_B - 20) / 47.0     # deterministic jitter
+            marks.append('<circle cx="%.1f" cy="%.1f" r="3" data-t="%s" data-p="%.3f"><title>%s — %.3f points</title></circle>'
+                         % (cx, cy, esc(("%s · %s" % (x["outlet"], x["title"] or ""))[:70]), v,
+                            esc(("%s · %s" % (x["outlet"], x["title"] or ""))[:70]), v))
+        ticks = []
+        e = math.floor(lgl)
+        while e <= math.ceil(lgh):
+            tv = 10 ** e
+            if lo <= tv <= hi * 1.01:
+                tx = PAD_L + plot_w * (e - lgl) / span
+                label = ("%g" % tv) if tv >= 0.01 else ("%.3f" % tv)
+                ticks.append('<line class="ax" x1="%.1f" y1="%d" x2="%.1f" y2="%d"/>'
+                             '<text x="%.1f" y="%d" text-anchor="middle">%s</text>'
+                             % (tx, H - PAD_B, tx, H - PAD_B + 4, tx, H - 6, label))
+            e += 1
+        svg = ('<svg class="strip" id="strip" viewBox="0 0 %d %d" preserveAspectRatio="none" role="img" '
+               'aria-label="Every ranked item plotted by influence on a logarithmic scale">'
+               '<line class="ax" x1="%d" y1="%d" x2="%d" y2="%d"/>%s%s</svg>'
+               % (W, H, PAD_L, H - PAD_B, W - PAD_R, H - PAD_B, "".join(ticks), "".join(marks)))
+        return svg, "%.3f to %.2f points" % (lo, hi)
+
+    strip, strip_range = strip_svg(ranked)
+
     # ---- leaderboard
     lb = []
     for x in ranked[:LEADERBOARD_N]:
@@ -295,9 +427,10 @@ def run() -> None:
         tot = sum(lep) or 1
         p = pts(x["i"])
         lb.append(
-            '<div class="lb"><div class="lbhead"><div class="rk">%02d</div>'
+            '<div class="lb" tabindex="0" role="button" aria-expanded="false">'
+            '<span class="caret">&#9656;</span><div class="lbhead"><div class="rk">%02d</div>'
             '<div class="lbtitle"><div class="h"><a href="%s" target="_blank" rel="noopener">%s</a></div>'
-            '<div class="lbmeta">%s</div></div><div class="pts">%.2f</div></div>'
+            '<div class="lbmeta">%s</div></div><div class="pts">%s</div></div>'
             '<div class="track"><i style="width:%.1f%%"></i></div>'
             '<div class="comps">'
             '<div class="comp"><div class="lab">Reach</div><div class="compval">%s</div>'
@@ -307,17 +440,26 @@ def run() -> None:
             '<div class="comp"><div class="lab">Discursiveness</div><div class="compval">%s</div>'
             '<div class="track"><i style="width:%.1f%%"></i></div></div>'
             '<div class="comp"><div class="lab">L &middot; E &middot; P</div>'
-            '<div class="compval">%s &middot; %s &middot; %s</div>'
+            '<div class="compval">%s</div>'
             '<div class="lep"><i class="l" style="width:%.1f%%"></i><i class="e" style="width:%.1f%%"></i>'
             '<i class="p" style="width:%.1f%%"></i></div></div>'
-            '</div></div>'
-            % (x["rank"], esc(x["url"]), esc((x["title"] or "(untitled)")[:130]), chips(x), p,
+            '</div>%s</div>'
+            % (x["rank"], esc(x["url"]), esc((x["title"] or "(untitled)")[:130]), chips(x),
+               hint("%.2f" % p, "PSI points", "Influence per thousand US adults. I multiplied by 1,000.",
+                    "I = %s" % f(x["i"], 8)),
                100 * p / maxpts,
-               f(x["r"], 5), 100 * min(1.0, (x["r"] or 0) / max(0.0001, max(y["r"] or 0 for y in ranked))),
-               f(x["s"], 3), 100 * min(1.0, (x["s"] or 0) / 0.30),
-               f(x["d"], 2), 100 * (x["d"] or 0),
-               lep[0], lep[1], lep[2],
-               100 * lep[0] / tot, 100 * lep[1] / tot, 100 * lep[2] / tot))
+               hint(f(x["r"], 5), "Reach", "Share of US adults reaching this single item.",
+                    "%s people / %s" % (f"{x['r_people']:,.0f}" if x["r_people"] else "?", f"{audience.US_ADULTS:,}")),
+               100 * min(1.0, (x["r"] or 0) / max(0.0001, max(y["r"] or 0 for y in ranked))),
+               hint(f(x["s"], 3), "Salience", "Each topic's share of the item, weighted by how many Americans call it the most important problem.",
+                    "Gallup %s" % (meta.get("mip_survey_date") or "")),
+               100 * min(1.0, (x["s"] or 0) / 0.30),
+               hint(f(x["d"], 2), "Discursiveness", "Logos + Ethos + Pathos out of 30. Persuasive force, not quality.",
+                    "%d + %d + %d = %d / 30" % (lep[0], lep[1], lep[2], sum(lep))),
+               100 * (x["d"] or 0),
+               hint("%s &middot; %s &middot; %s" % (lep[0], lep[1], lep[2]), "Argument, authority, emotion",
+                    "Ethos is the speaker's standing with their own audience, never their fairness."),
+               100 * lep[0] / tot, 100 * lep[1] / tot, 100 * lep[2] / tot, detail(x)))
 
     # ---- full table
     trs = []
@@ -341,6 +483,7 @@ def run() -> None:
                x["s"] if x["s"] is not None else "", f(x["s"], 3),
                x["d"] if x["d"] is not None else "", f(x["d"], 2),
                p if p is not None else "", ("%.2f" % p) if p is not None else "—"))
+        trs.append('<tr class="det" style="display:none"><td colspan="6">%s</td></tr>' % detail(x))
 
     trows = []
     for m in mip:
@@ -398,12 +541,16 @@ Scores are PSI points: influence per thousand US adults, an absolute figure rath
 </div></div></header>
 
 <main class="wrap">
+<div class="card"><h2>How influence is distributed</h2>
+<p class="sub">Every one of the %d ranked items, placed on a logarithmic influence scale — %s. The long tail on the left is print and digital: a single article reaches tens of thousands where one broadcast segment reaches millions. Hover any mark to identify it.</p>
+<div class="body">%s<div class="calc" id="striplabel">Hover a mark to identify it.</div></div></div>
+
 <div class="card"><h2>Index leaderboard</h2>
-<p class="sub">Top %d items by influence, with the component scores behind each rank. Bars scale to the leader; the L &middot; E &middot; P strip shows the mix of argument, authority and emotion, not their level. The distribution is steeply skewed — the median item scores under a hundredth of the leader — because one broadcast segment reaches millions where one article reaches tens of thousands.</p>
+<p class="sub">Click any entry to open the reasoning behind it. Top %d items by influence, with the component scores behind each rank. Bars scale to the leader; the L &middot; E &middot; P strip shows the mix of argument, authority and emotion, not their level. The distribution is steeply skewed — the median item scores under a hundredth of the leader — because one broadcast segment reaches millions where one article reaches tens of thousands.</p>
 <div class="body">%s</div></div>
 
 <div class="card"><h2>Every item</h2>
-<p class="sub">All %d sampled items. Click a column to sort.</p>
+<p class="sub">All %d sampled items. Click a column to sort, or a row to expand it.</p>
 <div class="controls">
  <span class="lab">Search</span><input id="q" type="search" placeholder="outlet or headline">
  <span class="lab">Type</span><select id="ty"><option value="">all</option>%s</select>
@@ -448,6 +595,7 @@ Scores are PSI points: influence per thousand US adults, an absolute figure rath
         ("%.3f" % median) if median is not None else "—",
         ("%.3f" % p25) if p25 is not None else "—", ("%.2f" % p75) if p75 is not None else "—",
         "%d d" % 14, esc(days),
+        len(ranked), esc(strip_range), strip,
         LEADERBOARD_N, "".join(lb), len(items),
         "".join('<option value="%s">%s</option>' % (esc(t), esc(t)) for t in types),
         "".join('<option value="%s">%s</option>' % (esc(t), esc(labels.get(t, t))) for t in sorted(mass, key=lambda k: -mass[k])),

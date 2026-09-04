@@ -1,6 +1,6 @@
 # Hand-check sample — 20 ranked items
 
-Generated 04 Sep 2026, 00:57 UTC, seed 20260904. Rubric score_v2.
+Generated 04 Sep 2026, 12:56 UTC, seed 20260904. Rubric score_v2.
 
 Ethos is the speaker's standing with their own audience, not their fairness.
 

@@ -350,3 +350,42 @@ configured, so every item from an outlet carries that outlet's
 average reach and the top of the leaderboard is seven ABC News
 items at identical R. A YouTube Data API key alone would fix
 this for every channel-based outlet.
+
+## 2026-09-04 — v0.4.1: the report becomes interactive
+
+BB's read of the design: minimal is right, but it felt basic
+because nothing responded — no hover, no way to see more.
+Fixed by adding depth on demand rather than colour.
+
+**Every row expands.** Click a leaderboard entry or a table row
+and it opens: the model's justification, the topic split with
+bars, the full reach arithmetic (people -> divided by US adults
+-> R -> multiplied out to points), and provenance — reach source
+as a link, unit, date, fetch method, word count, flags.
+Keyboard reachable, aria-expanded set.
+
+**Every number explains itself.** R, S, D, points and the L·E·P
+triple carry a hover card with the definition and that row's own
+arithmetic.
+
+**New: distribution strip.** All 478 ranked items on a log
+influence scale, one hue, hover to identify. It makes the skew
+visible instead of merely described — the long left tail is
+print and digital, where one article reaches tens of thousands
+against a broadcast segment's millions.
+
+**Colour check.** The L·E·P triad was run through the dataviz
+validator. Light passed; dark failed the lightness band, so the
+dark steps were re-picked as #5490D2 / #36A886 / #D07C50, which
+passes all six checks. Segments now carry a 2px gap and the
+numbers are printed above them, the secondary encoding the
+CVD band requires.
+
+**Recorded for next round** (docs/next.md): BB's point that
+discursiveness is partly recoverable from source metadata for
+paywalled items — author from dc:creator is ethos directly,
+URL section (/opinion/ vs news) is a logos prior, and known
+roles narrow the plausible band. To be passed as context for
+summary_only items only, so the effect stays measurable.
+
+Spend unchanged at $4.51 — this round was presentation only.
