@@ -389,3 +389,55 @@ roles narrow the plausible band. To be passed as context for
 summary_only items only, so the effect stays measurable.
 
 Spend unchanged at $4.51 — this round was presentation only.
+
+## 2026-09-04 — v0.5: the report becomes an instrument
+
+BB: the heavy black bars are not nice, and little sensemaking
+happens when you interact. Be more ambitious.
+
+Both fair. v0.4.1 gave disclosure — it printed more fields when
+you clicked — where what was needed was understanding.
+
+**The bars are gone.** Magnitude is now a hairline track with a
+3px rounded mark and a small terminal dot, recessive as the mark
+specs require. Hue is reserved for the one place it carries
+identity, the Logos/Ethos/Pathos strip.
+
+**The centrepiece: the assumptions are controls.** Every constant
+inside R — radio episodes per week, podcast episode view rate,
+audio multiple, newsletter open rate, digital items per month, TV
+segment share — is a slider, and moving one recomputes the whole
+audience model in the browser and re-ranks all 478 items live.
+The readout says what moved: how many items changed rank, by how
+much on average, the biggest riser and faller by name, and
+whether the top 25 held.
+
+This is the honest answer to the question the index most needs to
+answer about itself. Two examples from the build:
+- Digital items per month 800 -> 100: 414 of 478 items move by 31
+  places on average, the New York Times climbs 97 — and the top
+  25 does not change at all. Broadcast dominance is robust to the
+  weakest constant in the model.
+- TV segment share 1.0 -> 0.2: all 25 of the top 25 shift and
+  Marketplace takes the lead. That part of the ranking rests
+  entirely on an assumption, and now says so.
+
+**Items are placed, not just printed.** Expanding a row shows its
+percentile on reach, salience, discursiveness and influence as a
+marker on a spine, so a number becomes a position in a
+distribution. The reasoning, topic split, reach arithmetic and
+provenance sit alongside.
+
+**Salience gap as a finding.** The two-column bar table became a
+dumbbell chart: filled mark for public concern, hollow for
+coverage, the line between them the gap, sorted by deficit.
+Identity is shape, not colour, so it survives colourblindness and
+print. It responds to the filters, so the gap can be read for one
+medium or one topic at a time.
+
+**Architecture.** The page is now an app: the corpus ships as
+compact JSON (632 items, 383 KB) and the audience model is
+mirrored in JS so recomputation is instant. Assets live in
+psi/assets/report_app.{html,css,js}; psi/tools/payload.py builds
+the data; report.py just assembles. Still one self-contained
+file, still works with no network.

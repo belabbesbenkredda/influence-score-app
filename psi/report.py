@@ -283,349 +283,64 @@ def pts(i):
 
 
 def run() -> None:
-    with db.db() as con:
-        items = db.rows(con, """
-            SELECT s.*, i.title, i.url, i.published_at, i.word_count, i.fetch_method, i.content_basis,
-                   o.name AS outlet, o.type, o.language, o.content_access,
-                   r.reach_raw, r.reach_unit, r.reach_source, r.reach_source_url, r.reach_date, r.flag AS reach_flag
-            FROM item_scores s JOIN items i USING(item_id) JOIN outlets o USING(outlet_id)
-            LEFT JOIN reach r USING(outlet_id)
-            WHERE s.country=? ORDER BY (s.i IS NULL), s.i DESC""", (db.COUNTRY,))
-        sc = {r["item_id"]: r for r in db.rows(con, "SELECT * FROM scores2 WHERE prompt_version='score_v2'")}
-        for r in db.rows(con, "SELECT * FROM scores"):
-            sc.setdefault(r["item_id"], dict(r))
-        tops = {}
-        for r in db.rows(con, "SELECT item_id, topic, share FROM item_topics WHERE prompt_version='score_v2'"):
-            tops.setdefault(r["item_id"], []).append((r["topic"], r["share"]))
-        outlets = db.rows(con, """SELECT os.*, o.name, o.type, o.language, o.content_access, r.reach_raw,
-                                         r.reach_unit, r.flag AS reach_flag
-                                  FROM outlet_scores os JOIN outlets o USING(outlet_id) LEFT JOIN reach r USING(outlet_id)
-                                  WHERE os.country=? ORDER BY (os.i IS NULL), os.i DESC""", (db.COUNTRY,))
-        mip = db.rows(con, "SELECT topic, mip_share FROM mip WHERE country=? ORDER BY mip_share DESC", (db.COUNTRY,))
-        meta = {k: db.get_meta(con, k) for k in ("mip_survey_date", "signals_run")}
-        spend = (con.execute("SELECT COALESCE(SUM(cost_usd),0) FROM scores2").fetchone()[0]
-                 + con.execute("SELECT COALESCE(SUM(cost_usd),0) FROM scores").fetchone()[0])
-        n_out = con.execute("SELECT COUNT(*) FROM outlets WHERE country=?", (db.COUNTRY,)).fetchone()[0]
-        n_reach = con.execute("SELECT COUNT(*) FROM reach WHERE country=? AND reach_raw IS NOT NULL", (db.COUNTRY,)).fetchone()[0]
-        pub = con.execute("SELECT MIN(published_at),MAX(published_at) FROM items WHERE published_at IS NOT NULL").fetchone()
+    """Assemble the interactive report: shell + stylesheet + app, with the corpus inlined."""
+    import json
+    from psi.tools import payload as payload_mod
 
-    labels = {}
-    with open(db.DATA / "mip_table.csv", newline="", encoding="utf-8") as fh:
-        for r in csv.DictReader(fh):
-            labels[r["topic"]] = r["label"]
+    data = payload_mod.build()
+    assets = db.ROOT / "psi" / "assets"
+    shell = (assets / "report_app.html").read_text(encoding="utf-8")
+    css = (assets / "report_app.css").read_text(encoding="utf-8")
+    app = (assets / "report_app.js").read_text(encoding="utf-8")
+    blob = json.dumps(data, separators=(",", ":"), ensure_ascii=False).replace("</", "<\\/")
 
-    ranked = [x for x in items if x["i"] is not None]
-    lead = ranked[0] if ranked else None
-    pv = sorted(pts(x["i"]) for x in ranked)
-    median = pv[len(pv) // 2] if pv else None
-    p25 = pv[len(pv) // 4] if pv else None
-    p75 = pv[3 * len(pv) // 4] if pv else None
-    maxpts = pts(lead["i"]) if lead else 1
-    types = sorted({x["type"] for x in items if x["type"]})
-    n_summary = sum(1 for x in items if x["content_basis"] == "summary_only")
-    sig = meta.get("signals_run") or {}
-    generated = datetime.now(timezone.utc).strftime("%d %b %Y, %H:%M UTC")
-    days = ""
-    if pub[0] and pub[1]:
-        days = "%s – %s" % (pub[0][:10], pub[1][:10])
-
-    mass = Counter()
-    for lst in tops.values():
-        for t, share in lst:
-            mass[t] += share
-    total_mass = sum(mass.values()) or 1
-
-    def hint(value, title, body, calc=""):
-        return ('<span class="hint" tabindex="0">%s<span class="tip"><b>%s</b> %s%s</span></span>'
-                % (value, esc(title), esc(body), ("<em>%s</em>" % esc(calc)) if calc else ""))
-
-    def detail(x):
-        """What sits behind one row: the model's reasoning, the topic split, and how R was built."""
-        s_ = sc.get(x["item_id"], {})
-        tl = sorted(tops.get(x["item_id"], []), key=lambda kv: -kv[1])
-        top = max([v for _, v in tl] or [1])
-        bars = "".join('<div><span>%s</span><div class="track"><i style="width:%.0f%%"></i></div><b>%.0f%%</b></div>'
-                       % (esc(labels.get(t, t)), 100 * v / top, 100 * v) for t, v in tl)
-        people = x["r_people"]
-        calc = []
-        if people is not None:
-            calc.append("<b>%s</b> people reach one item" % f"{people:,.0f}")
-            calc.append("&divide; %s US adults = R <b>%s</b>" % (f"{audience.US_ADULTS:,}", f(x["r"], 5)))
-        calc.append("R %s &times; S %s &times; D %s" % (f(x["r"], 5), f(x["s"], 3), f(x["d"], 2)))
-        calc.append("= I %s &rarr; <b>%s points</b>" % (f(x["i"], 8), ("%.2f" % pts(x["i"])) if x["i"] is not None else "—"))
-        src = ('<a href="%s" target="_blank" rel="noopener">%s</a>' % (esc(x["reach_source_url"]), esc(x["reach_source"]))
-               if x["reach_source_url"] else esc(x["reach_source"] or "unsourced"))
-        return ('<div class="detail"><div class="dgrid">'
-                '<div class="dsec"><h4>Why it scored this way</h4><p class="quote">%s</p>'
-                '<h4 style="margin-top:14px">Topic split</h4><div class="tsplit">%s</div></div>'
-                '<div class="dsec"><h4>How reach was built</h4><div class="calc">%s</div>'
-                '<h4 style="margin-top:14px">Provenance</h4>'
-                '<div class="calc">%s &middot; %s%s</div>'
-                '<div class="prov"><span class="chip mono">%s</span><span class="chip mono">%d words</span>'
-                '<span class="chip mono">%s</span>%s'
-                '<a class="chip" href="%s" target="_blank" rel="noopener">open item &rarr;</a></div>'
-                '</div></div></div>'
-                % (esc(s_.get("justification") or "not scored"), bars, "<br>".join(calc),
-                   src, esc(x["reach_unit"] or ""), (" &middot; " + esc(x["reach_date"])) if x["reach_date"] else "",
-                   esc(x["fetch_method"] or ""), x["word_count"] or 0, esc(x["reach_flag"] or "unsourced"),
-                   '<span class="chip warn">summary only</span>' if x["content_basis"] == "summary_only" else "",
-                   esc(x["url"])))
-
-    def chips(x):
-        out = ['<span class="chip">%s</span>' % esc(x["outlet"]),
-               '<span class="chip mono">%s</span>' % esc(x["type"])]
-        if x["language"] and x["language"] != "en":
-            out.append('<span class="chip mono">%s</span>' % esc(x["language"].upper()))
-        if x["content_basis"] == "summary_only":
-            out.append('<span class="chip warn">summary only</span>')
-        return "".join(out)
-
-    # ---- distribution strip: every ranked item on a log influence scale.
-    # One hue, one series, no legend: the job is showing spread, not identity.
-    def strip_svg(rows):
-        if not rows:
-            return "", ""
-        import math
-        W, H, PAD_L, PAD_R, PAD_B = 1000, 96, 8, 8, 22
-        vals = [pts(x["i"]) for x in rows]
-        lo, hi = max(min(vals), 1e-5), max(vals)
-        lgl, lgh = math.log10(lo), math.log10(hi)
-        span = (lgh - lgl) or 1
-        plot_w = W - PAD_L - PAD_R
-        marks = []
-        for k, x in enumerate(rows):
-            v = pts(x["i"])
-            cx = PAD_L + plot_w * (math.log10(max(v, lo)) - lgl) / span
-            cy = 10 + ((k * 37) % 47) * (H - PAD_B - 20) / 47.0     # deterministic jitter
-            marks.append('<circle cx="%.1f" cy="%.1f" r="3" data-t="%s" data-p="%.3f"><title>%s — %.3f points</title></circle>'
-                         % (cx, cy, esc(("%s · %s" % (x["outlet"], x["title"] or ""))[:70]), v,
-                            esc(("%s · %s" % (x["outlet"], x["title"] or ""))[:70]), v))
-        ticks = []
-        e = math.floor(lgl)
-        while e <= math.ceil(lgh):
-            tv = 10 ** e
-            if lo <= tv <= hi * 1.01:
-                tx = PAD_L + plot_w * (e - lgl) / span
-                label = ("%g" % tv) if tv >= 0.01 else ("%.3f" % tv)
-                ticks.append('<line class="ax" x1="%.1f" y1="%d" x2="%.1f" y2="%d"/>'
-                             '<text x="%.1f" y="%d" text-anchor="middle">%s</text>'
-                             % (tx, H - PAD_B, tx, H - PAD_B + 4, tx, H - 6, label))
-            e += 1
-        svg = ('<svg class="strip" id="strip" viewBox="0 0 %d %d" preserveAspectRatio="none" role="img" '
-               'aria-label="Every ranked item plotted by influence on a logarithmic scale">'
-               '<line class="ax" x1="%d" y1="%d" x2="%d" y2="%d"/>%s%s</svg>'
-               % (W, H, PAD_L, H - PAD_B, W - PAD_R, H - PAD_B, "".join(ticks), "".join(marks)))
-        return svg, "%.3f to %.2f points" % (lo, hi)
-
-    strip, strip_range = strip_svg(ranked)
-
-    # ---- leaderboard
-    lb = []
-    for x in ranked[:LEADERBOARD_N]:
-        s = sc.get(x["item_id"], {})
-        lep = [s.get("logos") or 0, s.get("ethos") or 0, s.get("pathos") or 0]
-        tot = sum(lep) or 1
-        p = pts(x["i"])
-        lb.append(
-            '<div class="lb" tabindex="0" role="button" aria-expanded="false">'
-            '<span class="caret">&#9656;</span><div class="lbhead"><div class="rk">%02d</div>'
-            '<div class="lbtitle"><div class="h"><a href="%s" target="_blank" rel="noopener">%s</a></div>'
-            '<div class="lbmeta">%s</div></div><div class="pts">%s</div></div>'
-            '<div class="track"><i style="width:%.1f%%"></i></div>'
-            '<div class="comps">'
-            '<div class="comp"><div class="lab">Reach</div><div class="compval">%s</div>'
-            '<div class="track"><i style="width:%.1f%%"></i></div></div>'
-            '<div class="comp"><div class="lab">Salience</div><div class="compval">%s</div>'
-            '<div class="track"><i style="width:%.1f%%"></i></div></div>'
-            '<div class="comp"><div class="lab">Discursiveness</div><div class="compval">%s</div>'
-            '<div class="track"><i style="width:%.1f%%"></i></div></div>'
-            '<div class="comp"><div class="lab">L &middot; E &middot; P</div>'
-            '<div class="compval">%s</div>'
-            '<div class="lep"><i class="l" style="width:%.1f%%"></i><i class="e" style="width:%.1f%%"></i>'
-            '<i class="p" style="width:%.1f%%"></i></div></div>'
-            '</div>%s</div>'
-            % (x["rank"], esc(x["url"]), esc((x["title"] or "(untitled)")[:130]), chips(x),
-               hint("%.2f" % p, "PSI points", "Influence per thousand US adults. I multiplied by 1,000.",
-                    "I = %s" % f(x["i"], 8)),
-               100 * p / maxpts,
-               hint(f(x["r"], 5), "Reach", "Share of US adults reaching this single item.",
-                    "%s people / %s" % (f"{x['r_people']:,.0f}" if x["r_people"] else "?", f"{audience.US_ADULTS:,}")),
-               100 * min(1.0, (x["r"] or 0) / max(0.0001, max(y["r"] or 0 for y in ranked))),
-               hint(f(x["s"], 3), "Salience", "Each topic's share of the item, weighted by how many Americans call it the most important problem.",
-                    "Gallup %s" % (meta.get("mip_survey_date") or "")),
-               100 * min(1.0, (x["s"] or 0) / 0.30),
-               hint(f(x["d"], 2), "Discursiveness", "Logos + Ethos + Pathos out of 30. Persuasive force, not quality.",
-                    "%d + %d + %d = %d / 30" % (lep[0], lep[1], lep[2], sum(lep))),
-               100 * (x["d"] or 0),
-               hint("%s &middot; %s &middot; %s" % (lep[0], lep[1], lep[2]), "Argument, authority, emotion",
-                    "Ethos is the speaker's standing with their own audience, never their fairness."),
-               100 * lep[0] / tot, 100 * lep[1] / tot, 100 * lep[2] / tot, detail(x)))
-
-    # ---- full table
-    trs = []
-    for x in items:
-        s = sc.get(x["item_id"], {})
-        tl = sorted(tops.get(x["item_id"], []), key=lambda kv: -kv[1])
-        tstr = ", ".join("%s %.0f%%" % (t, 100 * v) for t, v in tl[:3]) or (s.get("topic") or "")
-        p = pts(x["i"])
-        trs.append(
-            '<tr data-s="%s" data-type="%s" data-topics="%s">'
-            '<td class="n" data-v="%s">%s</td>'
-            '<td><span class="headline">%s</span><div class="lbmeta">%s</div>'
-            '<div class="lab" style="font-size:.66rem;color:var(--muted);margin-top:3px">%s</div></td>'
-            '<td class="n" data-v="%s">%s</td><td class="n" data-v="%s">%s</td>'
-            '<td class="n" data-v="%s">%s</td><td class="n" data-v="%s"><b>%s</b></td></tr>'
-            % (esc(((x["outlet"] or "") + " " + (x["title"] or "")).lower()), esc(x["type"]),
-               esc(" ".join(t for t, _ in tl)),
-               x["rank"] or "", x["rank"] or "—",
-               esc((x["title"] or "(untitled)")[:110]), chips(x), esc(tstr),
-               x["r"] if x["r"] is not None else "", f(x["r"], 5),
-               x["s"] if x["s"] is not None else "", f(x["s"], 3),
-               x["d"] if x["d"] is not None else "", f(x["d"], 2),
-               p if p is not None else "", ("%.2f" % p) if p is not None else "—"))
-        trs.append('<tr class="det" style="display:none"><td colspan="6">%s</td></tr>' % detail(x))
-
-    trows = []
-    for m in mip:
-        cov = mass[m["topic"]] / total_mass
-        top = max(max(x["mip_share"] for x in mip), max((mass[k] / total_mass for k in mass), default=0.01))
-        trows.append('<div class="trow"><div class="tname">%s<span>%s</span></div>'
-                     '<div class="tbar"><div class="track"><i style="width:%.1f%%"></i></div><b>%.0f%%</b></div>'
-                     '<div class="tbar"><div class="track"><i class="cov" style="width:%.1f%%"></i></div><b>%.0f%%</b></div></div>'
-                     % (esc(labels.get(m["topic"], m["topic"])), esc(m["topic"]),
-                        100 * m["mip_share"] / top, 100 * m["mip_share"],
-                        100 * cov / top, 100 * cov))
-
-    orows = []
-    for o in outlets[:60]:
-        orows.append('<tr><td class="n">%s</td><td>%s<div class="lbmeta"><span class="chip mono">%s</span>%s</div></td>'
-                     '<td class="n">%s</td><td class="n">%s</td><td class="n">%s</td><td class="n"><b>%s</b></td>'
-                     '<td class="n">%s</td></tr>'
-                     % (o["rank"] or "—", esc(o["name"]), esc(o["type"]),
-                        '<span class="chip warn">paywalled</span>' if o["content_access"] == "paywalled" else "",
-                        f(o["r"], 5), f(o["s"], 3), f(o["d"], 2),
-                        ("%.2f" % pts(o["i"])) if o["i"] is not None else "—", o["n_scored"]))
-
-    arows = "".join('<div class="arow"><code>%s</code><b>%s</b><span>%s</span></div>'
-                    % (esc(k), esc(v[0]), esc(v[1])) for k, v in audience.ASSUMPTIONS.items())
-
-    sigline = ("No per-item signal provider is configured, so every item from an outlet currently carries that "
-               "outlet's average reach — the ranking within an outlet is decided by salience and discursiveness "
-               "alone. Setting <code>PSI_YOUTUBE_API_KEY</code> or an analytics endpoint turns this on."
-               if not sig.get("providers") else
-               "%d of %d items carry a measured per-item signal from %s." %
-               (sig.get("measured", 0), sig.get("items", 0), ", ".join(sig.get("providers", []))))
-
-    page = """<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+    page = ("""<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>PSI Influence Engine v0.4 — United States</title>
+<title>PSI Influence Engine v0.5 — United States</title>
 <style>%s
 %s</style></head><body>
-<div class="topbar"><div class="wrap">
- <div class="brand">Public Sphere Index <span>/ Influence</span></div>
- <span class="chip">United States</span><span class="chip mono">I = R &times; S &times; D</span>
- <div class="spacer"></div><span class="chip mono">%s</span>
- <button class="ghost" id="theme" type="button">Theme</button>
-</div></div>
-
-<header><div class="wrap">
-<h1>Influence rankings — United States</h1>
-<p class="lede">The individual items shaping opinion formation, ranked by reach &times; salience &times; discursiveness.
-Scores are PSI points: influence per thousand US adults, an absolute figure rather than a curve fitted to this week's leader.</p>
-<div class="kpis">
- <div class="kpi lead"><div class="lab">Leading item</div><b>%s</b><div class="sub">%s</div></div>
- <div class="kpi"><div class="lab">Items ranked</div><b>%d</b><div class="sub">of %d sampled</div></div>
- <div class="kpi"><div class="lab">Outlets</div><b>%d</b><div class="sub">%d with sourced reach</div></div>
- <div class="kpi"><div class="lab">Median influence</div><b>%s</b><div class="sub">PSI points &middot; quartiles %s–%s</div></div>
- <div class="kpi"><div class="lab">Sample window</div><b>%s</b><div class="sub">%s</div></div>
-</div></div></header>
-
-<main class="wrap">
-<div class="card"><h2>How influence is distributed</h2>
-<p class="sub">Every one of the %d ranked items, placed on a logarithmic influence scale — %s. The long tail on the left is print and digital: a single article reaches tens of thousands where one broadcast segment reaches millions. Hover any mark to identify it.</p>
-<div class="body">%s<div class="calc" id="striplabel">Hover a mark to identify it.</div></div></div>
-
-<div class="card"><h2>Index leaderboard</h2>
-<p class="sub">Click any entry to open the reasoning behind it. Top %d items by influence, with the component scores behind each rank. Bars scale to the leader; the L &middot; E &middot; P strip shows the mix of argument, authority and emotion, not their level. The distribution is steeply skewed — the median item scores under a hundredth of the leader — because one broadcast segment reaches millions where one article reaches tens of thousands.</p>
-<div class="body">%s</div></div>
-
-<div class="card"><h2>Every item</h2>
-<p class="sub">All %d sampled items. Click a column to sort, or a row to expand it.</p>
-<div class="controls">
- <span class="lab">Search</span><input id="q" type="search" placeholder="outlet or headline">
- <span class="lab">Type</span><select id="ty"><option value="">all</option>%s</select>
- <span class="lab">Topic</span><select id="tp"><option value="">all</option>%s</select>
- <span class="lab"><b id="shown">0</b> shown</span></div>
-<div class="scroll"><table id="items"><thead><tr>
-<th class="n">#</th><th>Item</th><th class="n">R</th><th class="n">S</th><th class="n">D</th><th class="n">Points</th>
-</tr></thead><tbody>%s</tbody></table></div></div>
-
-<div class="card"><h2>Topic salience against coverage</h2>
-<p class="sub">Left: the share of Americans naming each topic as the most important problem (Gallup, %s). Right: the share of the corpus devoted to it, counted proportionally — an item about a budget fight counts partly to government and partly to the economy.</p>
-<div class="body">%s</div></div>
-
-<div class="card"><h2>Outlets, as a rollup</h2>
-<p class="sub">The influence of one representative item, not a period total — sampling is capped per outlet, so a total would rank outlets by how many of their items we could fetch. An outlet dominating the item list above is a finding, not a fault.</p>
-<div class="scroll"><table><thead><tr><th class="n">#</th><th>Outlet</th><th class="n">R</th><th class="n">S</th>
-<th class="n">D</th><th class="n">Points</th><th class="n">n</th></tr></thead><tbody>%s</tbody></table></div></div>
-
-<div class="card"><h2>What is assumed inside R</h2>
-<p class="sub">Each medium reports a different currency — viewers, visits, listeners, subscribers. Converting them into one quantity, people reaching a single item, needs the constants below. None is measured; each is a stated assumption, collected in <code>psi/audience.py</code> so it can be replaced one at a time.</p>
-<div class="note">%s</div>
-<div class="body">%s
-<div class="arow" style="border-top:1px solid var(--rule)"><code>US_ADULTS</code><b>%s</b><span>%s</span></div>
-</div></div>
-</main>
-
-<footer><div class="wrap"><h2>Method</h2><ol>
-<li><b>R</b> — the outlet's sourced third-party audience figure, converted to people reaching one item, divided by US adults. Absolute: no normalisation against a category leader, no platform weights.</li>
-<li><b>S</b> — Gallup's Most Important Problem (%s), applied proportionally across every topic an item addresses.</li>
-<li><b>D</b> — Logos, Ethos and Pathos, each 0–10, rubric <span class="num">score_v2</span>. Ethos is the speaker's standing with their own audience, never their fairness: the instrument is descriptive and must register a demagogue and a statesman alike.</li>
-<li><b>Points</b> — I &times; 1,000, the expected influence per thousand American adults.</li>
-<li>%d outlets, %d with a sourced audience figure, each carrying a source URL, a verbatim quote and a date.</li>
-<li>%d items published %s. %d are headline-and-summary only, from outlets that block article fetching: their topics are meaningful, their discursiveness is not comparable with full text.</li>
-<li>Known gaps: the corpus is concentrated in a few days rather than spread over a month, and skewed towards outlets permitting automated fetching. Untranscribed audio is still missing.</li>
-<li>Nothing is estimated silently. Unsourced reach stays null, and every modelling constant is printed above. Scoring spend to date: $%.2f.</li>
-</ol></div></footer>
-<script>%s</script></body></html>""" % (
-        font_css(), CSS, generated,
-        ("%.2f" % pts(lead["i"])) if lead else "—",
-        esc(("%s · %s" % (lead["outlet"], lead["title"]))[:80]) if lead else "no ranked items",
-        len(ranked), len(items), n_out, n_reach,
-        ("%.3f" % median) if median is not None else "—",
-        ("%.3f" % p25) if p25 is not None else "—", ("%.2f" % p75) if p75 is not None else "—",
-        "%d d" % 14, esc(days),
-        len(ranked), esc(strip_range), strip,
-        LEADERBOARD_N, "".join(lb), len(items),
-        "".join('<option value="%s">%s</option>' % (esc(t), esc(t)) for t in types),
-        "".join('<option value="%s">%s</option>' % (esc(t), esc(labels.get(t, t))) for t in sorted(mass, key=lambda k: -mass[k])),
-        "".join(trs), esc(meta.get("mip_survey_date")), "".join(trows), "".join(orows),
-        sigline, arows, "%s" % f"{audience.US_ADULTS:,}", esc(audience.US_ADULTS_SOURCE),
-        esc(meta.get("mip_survey_date")), n_out, n_reach, len(items), esc(days), n_summary, spend, JS)
+%s
+<script>window.__PSI__=%s;</script>
+<script>%s</script>
+</body></html>""" % (font_css(), css, shell, blob, app))
 
     db.OUT.mkdir(parents=True, exist_ok=True)
     (db.OUT / "report.html").write_text(page, encoding="utf-8")
     (db.ROOT / "docs").mkdir(exist_ok=True)
     shutil.copyfile(db.OUT / "report.html", db.ROOT / "docs" / "index.html")
 
+    # hand-check sample, computed at the default assumptions
+    import csv as _csv
+    labels = {}
+    with open(db.DATA / "mip_table.csv", newline="", encoding="utf-8") as fh:
+        for r in _csv.DictReader(fh):
+            labels[r["topic"]] = r["label"]
+    with db.db() as con:
+        rows = db.rows(con, """SELECT s.*, i.title, i.url, i.content_basis, o.name AS outlet, o.type
+                               FROM item_scores s JOIN items i USING(item_id) JOIN outlets o USING(outlet_id)
+                               WHERE s.country=? AND s.i IS NOT NULL ORDER BY s.i DESC""", (db.COUNTRY,))
+        just = {r["item_id"]: r["justification"] for r in
+                db.rows(con, "SELECT item_id, justification FROM scores2 WHERE prompt_version='score_v2'")}
+        tp = {}
+        for r in db.rows(con, "SELECT item_id, topic, share FROM item_topics WHERE prompt_version='score_v2'"):
+            tp.setdefault(r["item_id"], []).append((r["topic"], r["share"]))
     rng = random.Random(HANDCHECK_SEED)
-    sample = rng.sample(ranked, min(HANDCHECK_N, len(ranked)))
+    sample = rng.sample(rows, min(HANDCHECK_N, len(rows)))
     lines = ["# Hand-check sample — %d ranked items" % len(sample), "",
-             "Generated %s, seed %d. Rubric score_v2." % (generated, HANDCHECK_SEED), "",
+             "Generated %s, seed %d. Rubric score_v2, default assumptions." % (data["generated"], HANDCHECK_SEED), "",
              "Ethos is the speaker's standing with their own audience, not their fairness.", ""]
     for k, x in enumerate(sample, 1):
-        s = sc.get(x["item_id"], {})
-        tl = sorted(tops.get(x["item_id"], []), key=lambda kv: -kv[1])
+        tl = sorted(tp.get(x["item_id"], []), key=lambda kv: -kv[1])
         lines += ["## %d. %s" % (k, x["title"]), "",
                   "- Outlet: %s (%s%s)" % (x["outlet"], x["type"],
                                            ", summary only" if x["content_basis"] == "summary_only" else ""),
                   "- Link: %s" % x["url"],
-                  "- Topics: %s" % ", ".join("%s %.0f%%" % (t, 100 * v) for t, v in tl),
-                  "- L/E/P: %s / %s / %s" % (s.get("logos"), s.get("ethos"), s.get("pathos")),
-                  "- R %s  S %s  D %s  points %.2f" % (f(x["r"], 5), f(x["s"], 3), f(x["d"], 2), pts(x["i"])),
-                  "- Justification: %s" % s.get("justification"), "- BB verdict:", ""]
+                  "- Topics: %s" % ", ".join("%s %.0f%%" % (labels.get(t, t), 100 * v) for t, v in tl),
+                  "- R %s  S %s  D %s  points %.3f" % (f(x["r"], 5), f(x["s"], 3), f(x["d"], 2), x["i"] * 1000),
+                  "- Justification: %s" % just.get(x["item_id"], ""), "- BB verdict:", ""]
     (db.OUT / "handcheck_sample.md").write_text("\n".join(lines), encoding="utf-8")
-    print("  wrote out/report.html (%d KB), docs/index.html, out/handcheck_sample.md" % (len(page) // 1024))
+    print("  wrote out/report.html (%d KB, %d items inlined), docs/index.html, out/handcheck_sample.md"
+          % (len(page) // 1024, len(data["items"])))
 
 
 if __name__ == "__main__":
