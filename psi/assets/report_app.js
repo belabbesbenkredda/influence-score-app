@@ -64,10 +64,9 @@ function pct(k,v){
 var pts=function(i){return i==null?null:i*1000};
 
 // ---- rendering ------------------------------------------------------------------------
-function mk(frac,big){
+function mk(frac,cls){
   frac=Math.max(0,Math.min(1,frac||0));
-  return '<div class="mk'+(big?' big':'')+'"><i style="width:'+(frac*100).toFixed(1)+'%"></i>'+
-         '<u style="left:'+(frac*100).toFixed(1)+'%"></u></div>';
+  return '<div class="mk'+(cls?" "+cls:"")+'"><i style="width:'+(frac*100).toFixed(1)+'%"></i></div>';
 }
 function chips(x){
   var o=D.outlets[x.o];
@@ -92,10 +91,9 @@ function renderKPIs(){
 var pts=function(i){return i==null?null:i*1000};
 
 // ---- rendering ------------------------------------------------------------------------
-function mk(frac,big){
+function mk(frac,cls){
   frac=Math.max(0,Math.min(1,frac||0));
-  return '<div class="mk'+(big?' big':'')+'"><i style="width:'+(frac*100).toFixed(1)+'%"></i>'+
-         '<u style="left:'+(frac*100).toFixed(1)+'%"></u></div>';
+  return '<div class="mk'+(cls?" "+cls:"")+'"><i style="width:'+(frac*100).toFixed(1)+'%"></i></div>';
 }
 function chips(x){
   var o=D.outlets[x.o];
@@ -262,15 +260,13 @@ function renderBoard(){
   $("shown").textContent=show.length; $("total").textContent=list.length;
   $("board").innerHTML = show.map(function(x){
     var lep=(x.l||0)+(x.e||0)+(x.p||0)||1;
-    var pctI=pct("I",x.I);
     return '<div class="lb'+(state.open===x.idx?" open":"")+'" data-i="'+x.idx+'" tabindex="0" role="button" aria-expanded="'+
       (state.open===x.idx)+'">'+
       '<div class="lbhead"><div class="rk">'+String(x.rank).padStart(2,"0")+'</div>'+
       '<div class="lbtitle"><div class="h"><a href="'+esc(x.url)+'" target="_blank" rel="noopener">'+esc(x.title)+'</a></div>'+
       '<div class="lbmeta">'+chips(x)+'</div></div>'+
       '<div class="pts">'+pts(x.I).toFixed(2)+'</div></div>'+
-      '<div class="spine" title="Position among all ranked items by influence">'+
-        '<u style="left:'+(pctI*100).toFixed(1)+'%"></u></div>'+
+      mk(pts(x.I)/maxp,"lead")+
       '<div class="comps">'+
       '<div class="comp"><div class="lab">Reach</div><div class="compval">'+fmt(x.R,5)+'</div>'+mk(pct("R",x.R))+'</div>'+
       '<div class="comp"><div class="lab">Salience</div><div class="compval">'+fmt(x.S,3)+'</div>'+mk(pct("S",x.S))+'</div>'+
