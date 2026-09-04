@@ -239,3 +239,64 @@ fonts embedded as data URIs, sorting and filtering work. Copied to
 - [x] >= 300 scored items (581); ranked CSV/JSON; offline report
 - [x] handcheck sample, RUNLOG, README for a non-developer
 - [x] `python run.py all` reproduces everything
+
+## 2026-09-04 — v0.3: rubric v2, item-first, absolute reach
+
+BB reviewed all 22 methodological decisions in the review console.
+10 approve, 11 change, 1 reject (D14, the sampling window),
+1 left open (D06, where he asked which normalisation I preferred).
+
+**Rubric v2 (`psi/prompts/score_v2.md`)**
+- Ethos rewritten. It now measures the speaker's standing with
+  their own audience, and the rubric explicitly forbids lowering
+  it for partisanship, one-sidedness or absent counterarguments.
+  BB's paper: the framework must catch both Goebbels and Socrates.
+- Topics are now proportional shares, not one label per item.
+
+**Effect of the rescore (581 items, both rubrics, $4.26 total)**
+
+| | v1 | v2 | change |
+|---|---|---|---|
+| logos | 5.02 | 5.12 | +0.10 |
+| ethos | 5.17 | 5.39 | +0.22 |
+| pathos | 5.10 | 4.54 | -0.56 |
+
+Ethos moved exactly where the error predicted:
+podcast +2.42, radio +1.47, newsletter +0.48,
+cable -0.07, print_digital -0.25, tv -0.35.
+Mark Levin went 2 -> 8. The old rubric was scoring
+institutional manner as credibility and penalising
+audience authority.
+
+Economy coverage rose 7.7% -> 9.1% of topic mass.
+Smaller than the labelling test suggested, because
+government/leadership genuinely dominates these days
+and economy is a minority share inside those items.
+
+**Reach is now absolute (`psi/audience.py`)**
+- Leader-normalisation and the Pew platform weights are gone.
+  R = estimated US adults reaching one item / 262m US adults.
+- Each medium's currency is converted by a named constant:
+  radio weekly cume / 5 episodes; podcast subscribers x 10%
+  episode rate x audio multiple; newsletter subscribers x 40%
+  open rate; digital monthly visits / 800 items a month.
+- Every constant is an assumption, gathered in one module and
+  printed in the report. The digital divisor is the weakest.
+
+**Item-first aggregation**
+- 581 items, 423 with R, S and D. Outlets are now a rollup:
+  the mean influence of one representative item, never a period
+  total, because sampling is capped per outlet.
+
+**KNOWN LIMITATION, visible in the output**
+Every item from one outlet still carries the same R, so the
+item ranking is currently the outlet ranking with S x D as a
+tiebreak — the top seven items are all ABC News at R = 0.03130.
+The audience model supplies the LEVEL; the per-item SIGNAL that
+supplies the DISTRIBUTION is not collected yet. That is the next
+build: YouTube per-video views, engagement per URL.
+
+**Still open from the review**: D01 (new entrants), D08 (unsourced
+outlets), D15 (items per outlet), D22 (paywalled papers). The
+one-month evenly-sampled window and audio transcription are also
+still to do.

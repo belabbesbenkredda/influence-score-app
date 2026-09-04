@@ -122,6 +122,48 @@ CREATE TABLE IF NOT EXISTS scores (
     scored_at      TEXT
 );
 
+CREATE TABLE IF NOT EXISTS scores2 (
+    item_id        TEXT NOT NULL,
+    prompt_version TEXT NOT NULL,
+    logos          INTEGER,
+    ethos          INTEGER,
+    pathos         INTEGER,
+    d              INTEGER,          -- logos + ethos + pathos (0-30)
+    justification  TEXT,
+    raw_json       TEXT,
+    model          TEXT,
+    input_tokens   INTEGER,
+    output_tokens  INTEGER,
+    cache_read_tokens INTEGER,
+    cache_write_tokens INTEGER,
+    cost_usd       REAL,
+    text_truncated INTEGER DEFAULT 0,
+    scored_at      TEXT,
+    PRIMARY KEY (item_id, prompt_version)
+);
+
+CREATE TABLE IF NOT EXISTS item_topics (
+    item_id        TEXT NOT NULL,
+    prompt_version TEXT NOT NULL,
+    topic          TEXT NOT NULL,
+    share          REAL NOT NULL,    -- proportion of the item devoted to this topic
+    PRIMARY KEY (item_id, prompt_version, topic)
+);
+CREATE INDEX IF NOT EXISTS idx_item_topics_topic ON item_topics(topic);
+
+CREATE TABLE IF NOT EXISTS item_scores (
+    item_id     TEXT PRIMARY KEY,
+    country     TEXT NOT NULL DEFAULT 'US',
+    r           REAL,                -- estimated US adults reached by this item / US adult population
+    s           REAL,                -- sum over topics of share * mip_share
+    d           REAL,                -- (L+E+P)/30
+    i           REAL,
+    rank        INTEGER,
+    r_people    REAL,                -- the modelled headcount behind r
+    r_basis     TEXT,                -- which audience model produced it
+    computed_at TEXT
+);
+
 CREATE TABLE IF NOT EXISTS outlet_scores (
     outlet_id   TEXT PRIMARY KEY REFERENCES outlets(outlet_id),
     country     TEXT NOT NULL DEFAULT 'US',
@@ -205,12 +247,16 @@ def rows(con: sqlite3.Connection, sql: str, params=()) -> list[dict]:
     return [dict(r) for r in con.execute(sql, params).fetchall()]
 
 
-def upsert(con: sqlite3.Connection, table: str, record: dict, key: str) -> None:
+def upsert(con: sqlite3.Connection, table: str, record: dict, key) -> None:
+    """Insert or update. `key` is the conflict target: a column name or a list of them."""
+    keys = [key] if isinstance(key, str) else list(key)
     cols = list(record.keys())
     placeholders = ",".join("?" for _ in cols)
-    updates = ",".join(f"{c}=excluded.{c}" for c in cols if c != key)
+    updates = ",".join(f"{c}=excluded.{c}" for c in cols if c not in keys)
+    conflict = ",".join(keys)
+    action = f"DO UPDATE SET {updates}" if updates else "DO NOTHING"
     con.execute(
         f"INSERT INTO {table}({','.join(cols)}) VALUES({placeholders}) "
-        f"ON CONFLICT({key}) DO UPDATE SET {updates}",
+        f"ON CONFLICT({conflict}) {action}",
         [record[c] for c in cols],
     )

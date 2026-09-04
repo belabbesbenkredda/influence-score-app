@@ -25,7 +25,7 @@ from datetime import datetime, timezone
 from psi import db
 
 MODEL = os.environ.get("PSI_SCORE_MODEL", "claude-sonnet-5")
-PROMPT_VERSION = "score_v1"
+PROMPT_VERSION = os.environ.get("PSI_PROMPT_VERSION", "score_v2")
 PROMPT_PATH = db.ROOT / "psi" / "prompts" / f"{PROMPT_VERSION}.md"
 CONCURRENCY = 5
 MAX_RETRIES = 4
@@ -53,16 +53,28 @@ def cost_usd(model: str, usage) -> float:
 
 
 def build_schema(topics: list[str]) -> dict:
+    """v1 returns one topic; v2 returns proportional shares across topics."""
+    lep = {k: {"type": "integer", "enum": list(range(11))} for k in ("logos", "ethos", "pathos")}
+    if PROMPT_VERSION == "score_v1":
+        return {"type": "object",
+                "properties": {"topic": {"type": "string", "enum": topics}, **lep, "justification": {"type": "string"}},
+                "required": ["topic", "logos", "ethos", "pathos", "justification"], "additionalProperties": False}
     return {
         "type": "object",
         "properties": {
-            "topic": {"type": "string", "enum": topics},
-            "logos": {"type": "integer", "enum": list(range(11))},
-            "ethos": {"type": "integer", "enum": list(range(11))},
-            "pathos": {"type": "integer", "enum": list(range(11))},
+            "topics": {
+                "type": "array",
+                "description": ("How the item's substance divides across topics, as proportions summing to about 1.0. "
+                                "Include only topics with a share of 0.05 or more; most items have two to four."),
+                "items": {"type": "object",
+                          "properties": {"topic": {"type": "string", "enum": topics},
+                                         "share": {"type": "number"}},
+                          "required": ["topic", "share"], "additionalProperties": False},
+            },
+            **lep,
             "justification": {"type": "string"},
         },
-        "required": ["topic", "logos", "ethos", "pathos", "justification"],
+        "required": ["topics", "logos", "ethos", "pathos", "justification"],
         "additionalProperties": False,
     }
 
@@ -104,10 +116,25 @@ def score_one(client, item: dict, system_blocks, schema: dict) -> dict:
             data = json.loads(raw)
             for k in ("logos", "ethos", "pathos"):
                 data[k] = max(0, min(10, int(data[k])))
+            if PROMPT_VERSION == "score_v1":
+                shares = {data["topic"]: 1.0}
+            else:
+                shares = {}
+                for t in data["topics"]:
+                    share = float(t["share"])
+                    if share < 0.05:          # the rubric's floor, enforced here since the schema cannot
+                        continue
+                    shares[t["topic"]] = shares.get(t["topic"], 0.0) + share
+                if len(shares) > 6:           # keep the six largest
+                    shares = dict(sorted(shares.items(), key=lambda kv: -kv[1])[:6])
+                total = sum(shares.values())
+                if total <= 0:
+                    raise ValueError("topic shares sum to zero")
+                shares = {k: v / total for k, v in shares.items()}   # normalise to exactly 1
             usage = resp.usage
             usd = cost_usd(MODEL, usage)
             return {
-                "item_id": item["item_id"], "topic": data["topic"], "logos": data["logos"], "ethos": data["ethos"],
+                "item_id": item["item_id"], "shares": shares, "logos": data["logos"], "ethos": data["ethos"],
                 "pathos": data["pathos"], "d": data["logos"] + data["ethos"] + data["pathos"],
                 "justification": data["justification"][:600], "raw_json": raw, "model": resp.model,
                 "prompt_version": PROMPT_VERSION, "input_tokens": usage.input_tokens, "output_tokens": usage.output_tokens,
@@ -151,11 +178,17 @@ def run() -> None:
                 labels[r["topic"]] = r["label"]
         for r in mip_rows:
             r["label"] = labels.get(r["topic"], r["topic"])
-        todo = db.rows(con, """SELECT i.* FROM items i LEFT JOIN scores s USING(item_id)
-                               WHERE i.country=? AND s.item_id IS NULL AND i.word_count>=300 ORDER BY i.outlet_id, i.published_at""", (db.COUNTRY,))
-        already = con.execute("SELECT COUNT(*), COALESCE(SUM(cost_usd),0) FROM scores").fetchone()
+        todo = db.rows(con, """SELECT i.* FROM items i
+                               LEFT JOIN scores2 s ON s.item_id=i.item_id AND s.prompt_version=?
+                               WHERE i.country=? AND s.item_id IS NULL AND i.word_count>=300
+                               ORDER BY i.outlet_id, i.published_at""", (PROMPT_VERSION, db.COUNTRY))
+        already = con.execute("SELECT COUNT(*), COALESCE(SUM(cost_usd),0) FROM scores2 WHERE prompt_version=?",
+                              (PROMPT_VERSION,)).fetchone()
     if not mip_rows:
         raise SystemExit("No MIP topics in DB; run `python run.py salience` first.")
+    if os.environ.get("PSI_SCORE_LIMIT"):
+        todo = todo[: int(os.environ["PSI_SCORE_LIMIT"])]
+        print(f"  PSI_SCORE_LIMIT: scoring only the first {len(todo)} items")
     topics = [r["topic"] for r in mip_rows]
     schema = build_schema(topics)
     system_blocks = [{"type": "text", "text": build_system(rubric, mip_rows), "cache_control": {"type": "ephemeral"}}]
@@ -183,8 +216,14 @@ def run() -> None:
             with _lock:
                 _spent["usd"] += rec["cost_usd"]
                 spent = _spent["usd"]
+            shares = rec.pop("shares")
             with db.db() as con:
-                db.upsert(con, "scores", rec, "item_id")
+                db.upsert(con, "scores2", rec, ["item_id", "prompt_version"])
+                con.execute("DELETE FROM item_topics WHERE item_id=? AND prompt_version=?", (rec["item_id"], PROMPT_VERSION))
+                for topic, share in shares.items():
+                    db.upsert(con, "item_topics", {"item_id": rec["item_id"], "prompt_version": PROMPT_VERSION,
+                                                   "topic": topic, "share": round(share, 4)},
+                              ["item_id", "prompt_version", "topic"])
             done += 1
             if done % 25 == 0:
                 print(f"    {done}/{len(todo)} scored, ${spent:.2f} this run, {time.time()-t0:.0f}s")
@@ -195,7 +234,8 @@ def run() -> None:
                 break
 
     with db.db() as con:
-        n, total = con.execute("SELECT COUNT(*), COALESCE(SUM(cost_usd),0) FROM scores").fetchone()
+        n, total = con.execute("SELECT COUNT(*), COALESCE(SUM(cost_usd),0) FROM scores2 WHERE prompt_version=?",
+                               (PROMPT_VERSION,)).fetchone()
         db.set_meta(con, "score_run", {"at": datetime.now(timezone.utc).isoformat(), "model": MODEL, "effort": EFFORT,
                                        "prompt_version": PROMPT_VERSION, "scored_this_run": done, "failed": failed,
                                        "spend_this_run_usd": round(_spent["usd"], 4), "spend_total_usd": round(total, 4)})
